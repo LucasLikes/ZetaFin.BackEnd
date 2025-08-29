@@ -15,5 +15,7 @@ public class ApplicationDbContext : DbContext
 
     public DbSet<Goal> Goals { get; set; }
     public DbSet<Deposit> Deposits { get; set; }
+    public DbSet<User> Users { get; set; }
+    public DbSet<UserGoal> UserGoals { get; set; }
 
 }

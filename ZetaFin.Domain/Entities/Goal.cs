@@ -13,6 +13,12 @@ public class Goal
     public decimal CurrentAmount { get; private set; }
     public DateTime CreatedAt { get; private set; }
     public DateTime? TargetDate { get; private set; }
+    public ICollection<UserGoal> UserGoals { get; private set; } = new List<UserGoal>();
+
+    public int RemainingMonths
+        => TargetDate.HasValue
+            ? Math.Max(1, ((TargetDate.Value.Year - CreatedAt.Year) * 12) + TargetDate.Value.Month - CreatedAt.Month)
+            : 1;
 
     public Goal(string description, decimal targetAmount, DateTime? targetDate = null)
     {
@@ -51,6 +57,11 @@ public class Goal
         if (deposit == null) throw new ArgumentNullException(nameof(deposit));
         _deposits.Add(deposit);
         AddAmount(deposit.Amount);
+    }
+
+    public decimal GetRequiredMonthlyContribution()
+    {
+        return Math.Round(TargetAmount / RemainingMonths, 2);
     }
 }
 

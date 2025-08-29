@@ -27,7 +27,7 @@ public class DepositService : IDepositService
         if (goal == null)
             throw new Exception("Goal not found");
 
-        var deposit = new Deposit(dto.Amount, dto.Date, dto.Source, dto.GoalId);
+        var deposit = new Deposit(dto.Amount, dto.Date, dto.Source, dto.GoalId, dto.UserId);
         goal.AddDeposit(deposit); // atualiza valor acumulado
 
         await _depositRepository.AddAsync(deposit);

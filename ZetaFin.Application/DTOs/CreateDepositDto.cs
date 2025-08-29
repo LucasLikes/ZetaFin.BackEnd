@@ -12,5 +12,6 @@ public class CreateDepositDto
     public DateTime Date { get; set; }
     public string Source { get; set; } = string.Empty;
     public Guid GoalId { get; set; }
+    public Guid UserId { get; set; }
 }
 
