@@ -13,6 +13,7 @@ public class UserGoal
 
     public Guid GoalId { get; private set; }
     public Goal Goal { get; private set; }
+
     public decimal? CustomMonthlyTarget { get; private set; }
 
     public UserGoal(Guid userId, Guid goalId, decimal? customMonthlyTarget = null)

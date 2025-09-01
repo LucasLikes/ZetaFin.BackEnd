@@ -1,6 +1,11 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.18" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\ZetaFin.Domain\ZetaFin.Domain.csproj" />
     <ProjectReference Include="..\ZetaFin.Infrastructure\ZetaFin.Infrastructure.csproj" />
   </ItemGroup>

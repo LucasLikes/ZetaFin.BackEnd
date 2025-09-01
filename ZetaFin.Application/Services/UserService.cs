@@ -16,7 +16,7 @@ public class UserService : IUserService
 
     public async Task<UserDto> CreateUserAsync(CreateUserDto dto)
     {
-        var user = new User(dto.Name, dto.Email);
+        var user = new User(dto.Name, dto.Email, dto.Password);
         await _userRepository.AddAsync(user);
         return MapToDto(user);
     }
