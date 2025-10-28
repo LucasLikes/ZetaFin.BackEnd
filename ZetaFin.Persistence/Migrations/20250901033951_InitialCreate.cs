@@ -33,7 +33,10 @@ namespace ZetaFin.Persistence.Migrations
                 {
                     Id = table.Column<Guid>(type: "TEXT", nullable: false),
                     Name = table.Column<string>(type: "TEXT", nullable: false),
-                    Email = table.Column<string>(type: "TEXT", nullable: false)
+                    Email = table.Column<string>(type: "TEXT", nullable: false),
+                    PasswordHash = table.Column<string>(type: "TEXT", nullable: false),
+                    Role = table.Column<string>(type: "TEXT", nullable: false),
+                    IsEmailConfirmed = table.Column<bool>(type: "INTEGER", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -74,7 +77,8 @@ namespace ZetaFin.Persistence.Migrations
                 {
                     UserId = table.Column<Guid>(type: "TEXT", nullable: false),
                     GoalId = table.Column<Guid>(type: "TEXT", nullable: false),
-                    CustomMonthlyTarget = table.Column<decimal>(type: "TEXT", nullable: true)
+                    CustomMonthlyTarget = table.Column<decimal>(type: "TEXT", nullable: true),
+                    GoalId1 = table.Column<Guid>(type: "TEXT", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -85,6 +89,11 @@ namespace ZetaFin.Persistence.Migrations
                         principalTable: "Goals",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_UserGoals_Goals_GoalId1",
+                        column: x => x.GoalId1,
+                        principalTable: "Goals",
+                        principalColumn: "Id");
                     table.ForeignKey(
                         name: "FK_UserGoals_Users_UserId",
                         column: x => x.UserId,
@@ -107,6 +116,11 @@ namespace ZetaFin.Persistence.Migrations
                 name: "IX_UserGoals_GoalId",
                 table: "UserGoals",
                 column: "GoalId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_UserGoals_GoalId1",
+                table: "UserGoals",
+                column: "GoalId1");
         }
 
         /// <inheritdoc />

@@ -6,20 +6,49 @@ using ZetaFin.Domain.Interfaces;
 using ZetaFin.Persistence.Repositories;
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(options =>
+{
+    // Definindo o esquema de segurança JWT no Swagger
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = SecuritySchemeType.ApiKey,
+        Scheme = "Bearer",
+        BearerFormat = "JWT",
+        In = ParameterLocation.Header,
+        Description = "Informe o token JWT com o prefixo 'Bearer'."
+    });
+
+    // Exigindo o uso do token em todas as requisições protegidas
+    options.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            new string[] { }
+        }
+    });
+});
 
 // Configurar EF Core (use seu connection string real)
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // Configurar a autenticação JWT
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)  // Remover CookieAuthenticationDefaults, já que você está usando JWT
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme) // Remover CookieAuthenticationDefaults, já que você está usando JWT
     .AddJwtBearer(options =>
     {
         options.RequireHttpsMetadata = false;
@@ -29,7 +58,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)  // R
             ValidateIssuer = false,    // Caso precise configurar o Issuer, faça aqui
             ValidateAudience = false,  // Caso precise configurar o Audience, faça aqui
             ValidateLifetime = true,   // Verifica se o token expirou
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Secret"]))  // A chave secreta configurada em appsettings.json
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Secret"])) // A chave secreta configurada em appsettings.json
         };
     });
 

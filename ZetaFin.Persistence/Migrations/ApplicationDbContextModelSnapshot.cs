@@ -84,7 +84,18 @@ namespace ZetaFin.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
+                    b.Property<bool>("IsEmailConfirmed")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("PasswordHash")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Role")
                         .IsRequired()
                         .HasColumnType("TEXT");
 
@@ -104,9 +115,14 @@ namespace ZetaFin.Persistence.Migrations
                     b.Property<decimal?>("CustomMonthlyTarget")
                         .HasColumnType("TEXT");
 
+                    b.Property<Guid?>("GoalId1")
+                        .HasColumnType("TEXT");
+
                     b.HasKey("UserId", "GoalId");
 
                     b.HasIndex("GoalId");
+
+                    b.HasIndex("GoalId1");
 
                     b.ToTable("UserGoals");
                 });
@@ -133,10 +149,14 @@ namespace ZetaFin.Persistence.Migrations
             modelBuilder.Entity("ZetaFin.Domain.Entities.UserGoal", b =>
                 {
                     b.HasOne("ZetaFin.Domain.Entities.Goal", "Goal")
-                        .WithMany("UserGoals")
+                        .WithMany()
                         .HasForeignKey("GoalId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.HasOne("ZetaFin.Domain.Entities.Goal", null)
+                        .WithMany("UserGoals")
+                        .HasForeignKey("GoalId1");
 
                     b.HasOne("ZetaFin.Domain.Entities.User", "User")
                         .WithMany("UserGoals")

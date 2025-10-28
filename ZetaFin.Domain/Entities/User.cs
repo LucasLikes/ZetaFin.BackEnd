@@ -17,6 +17,8 @@ public class User
 
     public bool IsEmailConfirmed { get; private set; } = false;
 
+    public User() { }
+
     public User(string name, string email, string password, string role = "User")
     {
         if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Name is required");

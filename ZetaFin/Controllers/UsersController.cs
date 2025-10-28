@@ -5,7 +5,6 @@ using ZetaFin.Application.Interfaces;
 
 namespace ZetaFin.API.Controllers;
 
-[Authorize]
 [ApiController]
 [Route("api/[controller]")]
 public class UsersController : ControllerBase
