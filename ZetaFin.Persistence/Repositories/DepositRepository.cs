@@ -1,7 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using ZetaFin.Domain.Entities;
 using ZetaFin.Domain.Interfaces;
-using ZetaFin.Persistence.Context;
 
 namespace ZetaFin.Persistence.Repositories;
 

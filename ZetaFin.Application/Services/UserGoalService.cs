@@ -1,7 +1,6 @@
 ﻿using ZetaFin.Application.DTOs;
 using ZetaFin.Application.Interfaces;
 using ZetaFin.Domain.Entities;
-using ZetaFin.Persistence.Context;
 using Microsoft.EntityFrameworkCore;
 
 namespace ZetaFin.Application.Services;
