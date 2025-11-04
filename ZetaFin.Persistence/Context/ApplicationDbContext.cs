@@ -1,54 +1,54 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using ZetaFin.Domain.Entities;
 
+namespace ZetaFin.Persistence;
 public class ApplicationDbContext : DbContext
 {
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
         : base(options) { }
 
-    // Construtor sem parâmetros para o EF no tempo de design
+    // Construtor sem parâmetros (para EF no tempo de design)
     public ApplicationDbContext() { }
 
+    // DbSets existentes
     public DbSet<Goal> Goals { get; set; }
     public DbSet<Deposit> Deposits { get; set; }
     public DbSet<User> Users { get; set; }
     public DbSet<UserGoal> UserGoals { get; set; }
+    public DbSet<Expense> Expenses { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
 
-        // Definindo a chave primária para a entidade User
+        // Configurações que você já tinha...
         modelBuilder.Entity<User>()
-            .HasKey(u => u.Id);  // Especifica que 'Id' é a chave primária da tabela
+            .HasKey(u => u.Id);
 
-        // Definindo as propriedades como obrigatórias (campo NOT NULL no banco de dados)
         modelBuilder.Entity<User>()
             .Property(u => u.Name)
-            .IsRequired();  // 'Name' é obrigatório
+            .IsRequired();
 
         modelBuilder.Entity<User>()
             .Property(u => u.Email)
-            .IsRequired();  // 'Email' é obrigatório
+            .IsRequired();
 
         modelBuilder.Entity<User>()
             .Property(u => u.PasswordHash)
-            .IsRequired();  // 'PasswordHash' é obrigatório
+            .IsRequired();
 
         modelBuilder.Entity<User>()
             .Property(u => u.Role)
-            .IsRequired();  // 'Role' é obrigatório, com valor padrão 'User'
+            .IsRequired();
 
-        // Configurando o relacionamento com a entidade UserGoal
         modelBuilder.Entity<User>()
-            .HasMany(u => u.UserGoals)  // Um usuário pode ter muitos UserGoals
-            .WithOne()  // Define o relacionamento um-para-muitos
-            .HasForeignKey(ug => ug.UserId);  // Especifica que o 'UserId' é a chave estrangeira em UserGoal
+            .HasMany(u => u.UserGoals)
+            .WithOne()
+            .HasForeignKey(ug => ug.UserId);
 
         modelBuilder.Entity<UserGoal>()
-        .HasKey(ug => new { ug.UserId, ug.GoalId });  // Definindo a chave composta
+            .HasKey(ug => new { ug.UserId, ug.GoalId });
 
-        // Outras configurações do modelo
         modelBuilder.Entity<UserGoal>()
             .HasOne(ug => ug.User)
             .WithMany(u => u.UserGoals)
@@ -56,7 +56,15 @@ public class ApplicationDbContext : DbContext
 
         modelBuilder.Entity<UserGoal>()
             .HasOne(ug => ug.Goal)
-            .WithMany()  // Caso o Goal não tenha uma coleção de UserGoals, use WithMany()
+            .WithMany()
             .HasForeignKey(ug => ug.GoalId);
+
+        modelBuilder.Entity<Expense>()
+            .Property(e => e.Name)
+            .IsRequired();
+
+        modelBuilder.Entity<Expense>()
+            .Property(e => e.Value)
+            .HasColumnType("decimal(18,2)");
     }
 }

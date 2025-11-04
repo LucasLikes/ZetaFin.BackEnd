@@ -23,44 +23,53 @@ public class AuthController : ControllerBase
         _configuration = configuration;
     }
 
-    // Endpoint para login (recebe email e senha)
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginDto loginDto)
     {
+        if (string.IsNullOrWhiteSpace(loginDto.Email) || string.IsNullOrWhiteSpace(loginDto.Password))
+            return BadRequest("E-mail e senha são obrigatórios.");
+
         // Verifica se o usuário existe
         var user = await _userRepository.GetByEmailAsync(loginDto.Email);
         if (user == null)
             return Unauthorized("Usuário não encontrado.");
 
-        // Verifica se a senha está correta
-        bool isPasswordValid = await _userRepository.CheckUserPasswordAsync(loginDto.Email, loginDto.Password);
+        // Verifica a senha
+        var isPasswordValid = await _userRepository.CheckUserPasswordAsync(loginDto.Email, loginDto.Password);
         if (!isPasswordValid)
             return Unauthorized("Senha incorreta.");
 
         // Gera o token JWT
         var token = GenerateJwtToken(user);
 
-        // Retorna o token JWT
-        return Ok(new { Token = token });
+        // Retorna o objeto completo
+        return Ok(new
+        {
+            token,
+            userId = user.Id,
+            name = user.Name,
+            email = user.Email
+        });
     }
 
-    // Método para gerar o token JWT
     private string GenerateJwtToken(User user)
     {
         var claims = new[]
         {
-                new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
-                new Claim(JwtRegisteredClaimNames.NameId, user.Name),
-                new Claim(JwtRegisteredClaimNames.Email, user.Email),
-                new Claim(ClaimTypes.Role, user.Role),  // Aqui usamos o Role do usuário
-            };
+            new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
+            new Claim(JwtRegisteredClaimNames.UniqueName, user.Name),
+            new Claim(JwtRegisteredClaimNames.Email, user.Email),
+            new Claim(ClaimTypes.Role, user.Role)
+        };
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Secret"]));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
         var token = new JwtSecurityToken(
+            issuer: _configuration["Jwt:Issuer"],
+            audience: _configuration["Jwt:Audience"],
             claims: claims,
-            expires: DateTime.UtcNow.AddHours(1),  // O token expira em 1 hora
+            expires: DateTime.UtcNow.AddHours(1),
             signingCredentials: creds
         );
 
