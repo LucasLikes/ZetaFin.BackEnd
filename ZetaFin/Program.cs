@@ -7,6 +7,7 @@ using ZetaFin.Persistence.Repositories;
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.OpenApi.Models;
+using ZetaFin.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
 
