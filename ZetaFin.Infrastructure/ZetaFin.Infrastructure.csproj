@@ -3,10 +3,7 @@
   <ItemGroup>
     <ProjectReference Include="..\ZetaFin.Domain\ZetaFin.Domain.csproj" />
     <ProjectReference Include="..\ZetaFin.Persistence\ZetaFin.Persistence.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Services\" />
+    <ProjectReference Include="..\ZetaFin.Persistence\ZetaFin.Application.csproj" />
   </ItemGroup>
 
   <PropertyGroup>
