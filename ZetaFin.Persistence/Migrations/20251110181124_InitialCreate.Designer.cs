@@ -11,7 +11,7 @@ using ZetaFin.Persistence;
 namespace ZetaFin.Persistence.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20251110151104_InitialCreate")]
+    [Migration("20251110181124_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />

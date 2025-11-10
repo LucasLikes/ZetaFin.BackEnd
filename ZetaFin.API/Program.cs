@@ -1,48 +1,24 @@
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
+using System.Text;
 using ZetaFin.Application.Interfaces;
 using ZetaFin.Application.Services;
 using ZetaFin.Domain.Interfaces;
-using ZetaFin.Persistence.Repositories;
-using System.Text;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.OpenApi.Models;
 using ZetaFin.Persistence;
+using ZetaFin.Persistence.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(options =>
+builder.Services.AddAutoMapper(cfg =>
 {
-    // Definindo o esquema de segurança JWT no Swagger
-    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
-    {
-        Name = "Authorization",
-        Type = SecuritySchemeType.ApiKey,
-        Scheme = "Bearer",
-        BearerFormat = "JWT",
-        In = ParameterLocation.Header,
-        Description = "Informe o token JWT com o prefixo 'Bearer'."
-    });
-
-    // Exigindo o uso do token em todas as requisições protegidas
-    options.AddSecurityRequirement(new OpenApiSecurityRequirement
-    {
-        {
-            new OpenApiSecurityScheme
-            {
-                Reference = new OpenApiReference
-                {
-                    Type = ReferenceType.SecurityScheme,
-                    Id = "Bearer"
-                }
-            },
-            new string[] { }
-        }
-    });
+    cfg.AddProfile<MappingProfile>();
 });
+builder.Services.AddSwaggerWithJwt();
 
 // Configurar EF Core (use seu connection string real)
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
@@ -75,6 +51,10 @@ builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IUserGoalService, UserGoalService>();
 builder.Services.AddScoped<IUserGoalRepository, UserGoalRepository>();
+builder.Services.AddScoped<ITransactionService, TransactionService>();
+builder.Services.AddScoped<ITransactionRepository, TransactionRepository>();
+builder.Services.AddScoped<IExpenseRepository, ExpenseRepository>();
+builder.Services.AddScoped<IExpenseService, ExpenseService>();
 
 // Configuração para enviar e-mails (caso seja necessário adicionar o serviço de email depois)
 // builder.Services.AddScoped<IEmailService, EmailService>();
@@ -92,7 +72,7 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 
 // Enable authentication and authorization middleware
-app.UseAuthentication(); // Habilita autenticação JWT
+app.UseAuthentication();
 app.UseAuthorization();  // Habilita autorização
 
 app.MapControllers();
