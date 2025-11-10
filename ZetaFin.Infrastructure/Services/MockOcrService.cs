@@ -1,8 +1,4 @@
-﻿using Microsoft.AspNetCore.Cors.Infrastructure;
-using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
-using ZetaFin.Application.DTOs;
+﻿using ZetaFin.Application.DTOs;
 using ZetaFin.Application.Interfaces;
 
 namespace ZetaFin.Infrastructure.Services;

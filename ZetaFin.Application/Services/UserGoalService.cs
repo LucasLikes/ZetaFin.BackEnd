@@ -1,44 +1,39 @@
 ﻿using ZetaFin.Application.DTOs;
 using ZetaFin.Application.Interfaces;
 using ZetaFin.Domain.Entities;
-using Microsoft.EntityFrameworkCore;
-using ZetaFin.Persistence;
+using ZetaFin.Domain.Interfaces;
 
 namespace ZetaFin.Application.Services;
 
 public class UserGoalService : IUserGoalService
 {
-    private readonly ApplicationDbContext _context;
+    private readonly IUserGoalRepository _userGoalRepository;
 
-    public UserGoalService(ApplicationDbContext context)
+    public UserGoalService(IUserGoalRepository userGoalRepository)
     {
-        _context = context;
+        _userGoalRepository = userGoalRepository;
     }
 
     public async Task CreateUserGoalAsync(CreateUserGoalDto dto)
     {
         var userGoal = new UserGoal(dto.UserId, dto.GoalId, dto.CustomMonthlyTarget);
-        _context.UserGoals.Add(userGoal);
-        await _context.SaveChangesAsync();
+        await _userGoalRepository.AddAsync(userGoal);
+        await _userGoalRepository.SaveChangesAsync();
     }
 
     public async Task UpdateMonthlyTargetAsync(Guid userId, Guid goalId, decimal? customMonthlyTarget)
     {
-        var userGoal = await _context.UserGoals
-            .FirstOrDefaultAsync(ug => ug.UserId == userId && ug.GoalId == goalId);
-
+        var userGoal = await _userGoalRepository.GetByUserIdAndGoalIdAsync(userId, goalId);
         if (userGoal == null)
             throw new Exception("UserGoal not found");
 
         userGoal.UpdateCustomMonthlyTarget(customMonthlyTarget);
-        await _context.SaveChangesAsync();
+        await _userGoalRepository.SaveChangesAsync();
     }
 
     public async Task<IEnumerable<UserGoalDto>> GetUserGoalsByGoalIdAsync(Guid goalId)
     {
-        var userGoals = await _context.UserGoals
-            .Where(ug => ug.GoalId == goalId)
-            .ToListAsync();
+        var userGoals = await _userGoalRepository.GetByGoalIdAsync(goalId);
 
         return userGoals.Select(ug => new UserGoalDto
         {

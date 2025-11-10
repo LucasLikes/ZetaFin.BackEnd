@@ -1,9 +1,8 @@
-﻿using Microsoft.AspNetCore.Cors.Infrastructure;
-using Microsoft.AspNetCore.Http;
-using System;
+﻿using System;
 using System.IO;
 using System.Text.Json;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
 using ZetaFin.Application.DTOs;
 using ZetaFin.Application.Interfaces;
 using ZetaFin.Domain.Entities;
@@ -15,185 +14,173 @@ public class ReceiptService : IReceiptService
 {
     private readonly IReceiptRepository _receiptRepository;
     private readonly ITransactionRepository _transactionRepository;
-    private readonly IStorageService _storageService;
+    private readonly IFileStorageService _fileStorageService;
     private readonly IOcrService _ocrService;
 
     public ReceiptService(
         IReceiptRepository receiptRepository,
         ITransactionRepository transactionRepository,
-        IStorageService storageService,
+        IFileStorageService fileStorageService,
         IOcrService ocrService)
     {
         _receiptRepository = receiptRepository;
         _transactionRepository = transactionRepository;
-        _storageService = storageService;
+        _fileStorageService = fileStorageService;
         _ocrService = ocrService;
     }
 
-    public async Task<ReceiptUploadResponseDto> UploadAsync(
+    public async Task<ReceiptDto> UploadAsync(
         Guid userId,
         IFormFile file,
         Guid? transactionId = null)
     {
-        // Validar arquivo
-        if (file == null || file.Length == 0)
-            throw new ArgumentException("File is required");
-
-        if (file.Length > 10 * 1024 * 1024) // 10MB
-            throw new ArgumentException("File size cannot exceed 10MB");
-
-        var allowedTypes = new[] { "image/jpeg", "image/png", "application/pdf" };
-        if (!allowedTypes.Contains(file.ContentType.ToLower()))
-            throw new ArgumentException("Invalid file type. Only JPG, PNG, and PDF are allowed");
-
-        // Validar transaction se fornecida
+        // Validar se a transação existe (se foi fornecida)
         if (transactionId.HasValue)
         {
             var transaction = await _transactionRepository.GetByIdAsync(transactionId.Value);
-            if (transaction == null || transaction.UserId != userId)
-                throw new ArgumentException("Invalid transaction");
+            if (transaction == null)
+                throw new Exception("Transação não encontrada");
+
+            if (transaction.UserId != userId)
+                throw new Exception("Você não tem permissão para acessar esta transação");
         }
 
         // Upload do arquivo
-        string fileUrl;
-        using (var stream = file.OpenReadStream())
-        {
-            fileUrl = await _storageService.UploadFileAsync(
-                stream,
-                file.FileName,
-                file.ContentType,
-                "receipts");
-        }
+        var fileUrl = await _fileStorageService.UploadFileAsync(file, "receipts");
 
-        // Criar entidade Receipt
+        // Criar o recibo
         var receipt = new Receipt(
             userId,
             file.FileName,
             fileUrl,
             file.Length,
-            file.ContentType
+            file.ContentType,
+            transactionId
         );
-
-        if (transactionId.HasValue)
-        {
-            receipt.LinkToTransaction(transactionId.Value);
-        }
 
         await _receiptRepository.AddAsync(receipt);
 
-        // Processar OCR de forma assíncrona (não espera completar)
-        _ = ProcessOcrInBackground(receipt.Id, userId, fileUrl);
-
-        return MapToUploadResponseDto(receipt, null);
-    }
-
-    public async Task<ReceiptDto> ProcessOcrAsync(Guid receiptId, Guid userId)
-    {
-        var receipt = await _receiptRepository.GetByIdAsync(receiptId);
-
-        if (receipt == null || receipt.UserId != userId)
-            throw new KeyNotFoundException("Receipt not found");
-
-        OcrDataDto ocrData;
+        // Processar OCR em background (ou síncronamente)
         try
         {
-            ocrData = await _ocrService.ProcessImageAsync(receipt.FileUrl);
-
-            var ocrDataJson = JsonSerializer.Serialize(ocrData);
-            receipt.SetOcrData(ocrDataJson);
-        }
-        catch (Exception)
-        {
-            receipt.MarkOcrAsFailed();
-            throw;
-        }
-        finally
-        {
+            var ocrData = await _ocrService.ProcessReceiptAsync(fileUrl);
+            var ocrJson = JsonSerializer.Serialize(ocrData);
+            receipt.MarkAsProcessed(ocrJson);
             await _receiptRepository.UpdateAsync(receipt);
         }
+        catch (Exception ex)
+        {
+            // Log do erro, mas não falha o upload
+            Console.WriteLine($"Erro ao processar OCR: {ex.Message}");
+        }
 
-        return MapToDto(receipt, ocrData);
+        return MapToDto(receipt);
     }
 
-    public async Task<CreateTransactionFromReceiptResponseDto> CreateTransactionFromReceiptAsync(
-        Guid receiptId,
-        Guid userId,
-        CreateTransactionFromReceiptDto? dto = null)
+    public async Task<ReceiptDto?> GetByIdAsync(Guid id)
+    {
+        var receipt = await _receiptRepository.GetByIdAsync(id);
+        return receipt == null ? null : MapToDto(receipt);
+    }
+
+    public async Task<ReceiptDto> ProcessOcrAsync(Guid receiptId)
     {
         var receipt = await _receiptRepository.GetByIdAsync(receiptId);
+        if (receipt == null)
+            throw new Exception("Recibo não encontrado");
 
-        if (receipt == null || receipt.UserId != userId)
-            throw new KeyNotFoundException("Receipt not found");
+        var ocrData = await _ocrService.ProcessReceiptAsync(receipt.FileUrl);
+        var ocrJson = JsonSerializer.Serialize(ocrData);
 
-        if (!receipt.OcrProcessed || string.IsNullOrWhiteSpace(receipt.OcrDataJson))
-            throw new InvalidOperationException("OCR data not available. Process OCR first.");
+        receipt.UpdateOcrData(ocrJson);
+        await _receiptRepository.UpdateAsync(receipt);
 
+        return MapToDto(receipt);
+    }
+
+    public async Task<ReceiptWithTransactionDto> CreateTransactionFromOcrAsync(
+        Guid receiptId,
+        Guid userId,
+        CreateTransactionFromOcrDto? dto = null)
+    {
+        var receipt = await _receiptRepository.GetByIdAsync(receiptId);
+        if (receipt == null)
+            throw new Exception("Recibo não encontrado");
+
+        if (receipt.UserId != userId)
+            throw new Exception("Você não tem permissão para acessar este recibo");
+
+        if (!receipt.OcrProcessed || string.IsNullOrEmpty(receipt.OcrDataJson))
+            throw new Exception("OCR ainda não foi processado para este recibo");
+
+        if (receipt.TransactionId.HasValue)
+            throw new Exception("Recibo já está vinculado a uma transação");
+
+        // Deserializar dados do OCR
         var ocrData = JsonSerializer.Deserialize<OcrDataDto>(receipt.OcrDataJson);
         if (ocrData == null)
-            throw new InvalidOperationException("Invalid OCR data");
+            throw new Exception("Dados do OCR inválidos");
 
-        // Criar transação com base nos dados do OCR
+        // Criar transação com dados do OCR (ou sobrescrever com dto)
         var transaction = new Transaction(
             userId,
-            TransactionType.Expense,
+            TransactionType.Expense, // Recibos geralmente são despesas
             ocrData.ExtractedValue ?? 0,
-            dto?.Description ?? ocrData.MerchantName ?? "Despesa",
+            dto?.Description ?? ocrData.MerchantName ?? "Despesa via recibo",
             dto?.Category ?? "Outros",
             ocrData.ExtractedDate ?? DateTime.UtcNow,
-            dto?.ExpenseType ?? ExpenseType.Variaveis
+            dto?.ExpenseType ?? Domain.Entities.ExpenseType.Variaveis
         );
 
         await _transactionRepository.AddAsync(transaction);
 
-        // Vincular receipt à transação
+        // Vincular recibo à transação
         receipt.LinkToTransaction(transaction.Id);
         transaction.AttachReceipt(receipt);
 
         await _receiptRepository.UpdateAsync(receipt);
         await _transactionRepository.UpdateAsync(transaction);
 
-        return new CreateTransactionFromReceiptResponseDto
+        return new ReceiptWithTransactionDto
         {
-            Transaction = MapTransactionToDto(transaction),
-            Receipt = MapToDto(receipt, ocrData)
+            Transaction = new TransactionDto
+            {
+                Id = transaction.Id,
+                UserId = transaction.UserId,
+                Type = transaction.Type.ToString().ToLower(),
+                Value = transaction.Value,
+                Description = transaction.Description,
+                Category = transaction.Category,
+                ExpenseType = transaction.ExpenseType?.ToString().ToLower(),
+                Date = transaction.Date,
+                HasReceipt = true,
+                ReceiptUrl = receipt.FileUrl,
+                CreatedAt = transaction.CreatedAt
+            },
+            Receipt = MapToDto(receipt)
         };
     }
 
-    private async Task ProcessOcrInBackground(Guid receiptId, Guid userId, string fileUrl)
+    private ReceiptDto MapToDto(Receipt receipt)
     {
-        try
+        OcrDataDto? ocrData = null;
+        if (receipt.OcrProcessed && !string.IsNullOrEmpty(receipt.OcrDataJson))
         {
-            await Task.Delay(1000); // Pequeno delay para simular processamento
-            await ProcessOcrAsync(receiptId, userId);
+            try
+            {
+                ocrData = JsonSerializer.Deserialize<OcrDataDto>(receipt.OcrDataJson);
+            }
+            catch
+            {
+                // Se falhar ao deserializar, retorna null
+            }
         }
-        catch
-        {
-            // Log error but don't throw
-        }
-    }
 
-    private ReceiptUploadResponseDto MapToUploadResponseDto(Receipt receipt, OcrDataDto? ocrData)
-    {
-        return new ReceiptUploadResponseDto
-        {
-            Id = receipt.Id,
-            TransactionId = receipt.TransactionId,
-            FileName = receipt.FileName,
-            FileUrl = receipt.FileUrl,
-            FileSize = receipt.FileSize,
-            MimeType = receipt.MimeType,
-            OcrProcessed = receipt.OcrProcessed,
-            OcrData = ocrData,
-            CreatedAt = receipt.CreatedAt
-        };
-    }
-
-    private ReceiptDto MapToDto(Receipt receipt, OcrDataDto? ocrData)
-    {
         return new ReceiptDto
         {
             Id = receipt.Id,
             TransactionId = receipt.TransactionId,
+            UserId = receipt.UserId,
             FileName = receipt.FileName,
             FileUrl = receipt.FileUrl,
             FileSize = receipt.FileSize,
@@ -201,25 +188,6 @@ public class ReceiptService : IReceiptService
             OcrProcessed = receipt.OcrProcessed,
             OcrData = ocrData,
             CreatedAt = receipt.CreatedAt
-        };
-    }
-
-    private TransactionDto MapTransactionToDto(Transaction transaction)
-    {
-        return new TransactionDto
-        {
-            Id = transaction.Id,
-            UserId = transaction.UserId,
-            Type = transaction.Type,
-            Value = transaction.Value,
-            Description = transaction.Description,
-            Category = transaction.Category,
-            ExpenseType = transaction.ExpenseType,
-            Date = transaction.Date,
-            HasReceipt = transaction.HasReceipt,
-            ReceiptUrl = transaction.ReceiptUrl,
-            CreatedAt = transaction.CreatedAt,
-            UpdatedAt = transaction.UpdatedAt
         };
     }
 }

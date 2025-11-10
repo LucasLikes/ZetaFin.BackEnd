@@ -4,13 +4,14 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+using ZetaFin.Persistence;
 
 #nullable disable
 
 namespace ZetaFin.Persistence.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250901033951_InitialCreate")]
+    [Migration("20251110151104_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -50,6 +51,44 @@ namespace ZetaFin.Persistence.Migrations
                     b.ToTable("Deposits");
                 });
 
+            modelBuilder.Entity("ZetaFin.Domain.Entities.Expense", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("Date")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("DueDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("Value")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Expenses");
+                });
+
             modelBuilder.Entity("ZetaFin.Domain.Entities.Goal", b =>
                 {
                     b.Property<Guid>("Id")
@@ -75,6 +114,117 @@ namespace ZetaFin.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Goals");
+                });
+
+            modelBuilder.Entity("ZetaFin.Domain.Entities.Receipt", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("FileSize")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("FileUrl")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("MimeType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("OcrDataJson")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("OcrProcessed")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid?>("TransactionId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TransactionId")
+                        .IsUnique()
+                        .HasFilter("[TransactionId] IS NOT NULL");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("Receipts");
+                });
+
+            modelBuilder.Entity("ZetaFin.Domain.Entities.Transaction", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("Date")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ExpenseType")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("HasReceipt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("ReceiptOcrData")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ReceiptUrl")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("Value")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Date");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("UserId", "Date");
+
+                    b.ToTable("Transactions");
                 });
 
             modelBuilder.Entity("ZetaFin.Domain.Entities.User", b =>
@@ -149,6 +299,24 @@ namespace ZetaFin.Persistence.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("ZetaFin.Domain.Entities.Receipt", b =>
+                {
+                    b.HasOne("ZetaFin.Domain.Entities.Transaction", "Transaction")
+                        .WithOne("Receipt")
+                        .HasForeignKey("ZetaFin.Domain.Entities.Receipt", "TransactionId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("ZetaFin.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Transaction");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("ZetaFin.Domain.Entities.UserGoal", b =>
                 {
                     b.HasOne("ZetaFin.Domain.Entities.Goal", "Goal")
@@ -177,6 +345,11 @@ namespace ZetaFin.Persistence.Migrations
                     b.Navigation("Deposits");
 
                     b.Navigation("UserGoals");
+                });
+
+            modelBuilder.Entity("ZetaFin.Domain.Entities.Transaction", b =>
+                {
+                    b.Navigation("Receipt");
                 });
 
             modelBuilder.Entity("ZetaFin.Domain.Entities.User", b =>

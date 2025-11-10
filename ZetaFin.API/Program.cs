@@ -74,6 +74,7 @@ builder.Services.AddScoped<IDepositRepository, DepositRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IUserGoalService, UserGoalService>();
+builder.Services.AddScoped<IUserGoalRepository, UserGoalRepository>();
 
 // Configuração para enviar e-mails (caso seja necessário adicionar o serviço de email depois)
 // builder.Services.AddScoped<IEmailService, EmailService>();

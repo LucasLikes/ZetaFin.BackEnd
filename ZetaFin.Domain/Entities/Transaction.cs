@@ -33,6 +33,7 @@ public class Transaction : BaseEntity
     {
         ValidateTransaction(type, value, description, category, date, expenseType);
 
+        Id = Guid.NewGuid();
         UserId = userId;
         Type = type;
         Value = value;
@@ -41,6 +42,7 @@ public class Transaction : BaseEntity
         Date = date;
         ExpenseType = expenseType;
         HasReceipt = false;
+        CreatedAt = DateTime.UtcNow;
     }
 
     private void ValidateTransaction(
@@ -88,11 +90,14 @@ public class Transaction : BaseEntity
         UpdatedAt = DateTime.UtcNow;
     }
 
-    public void AttachReceipt(string receiptUrl, string? ocrData = null)
+    public void AttachReceipt(Receipt receipt)
     {
+        if (receipt == null)
+            throw new ArgumentNullException(nameof(receipt));
+
         HasReceipt = true;
-        ReceiptUrl = receiptUrl;
-        ReceiptOcrData = ocrData;
+        ReceiptUrl = receipt.FileUrl;
+        ReceiptOcrData = receipt.OcrDataJson;
         UpdatedAt = DateTime.UtcNow;
     }
 

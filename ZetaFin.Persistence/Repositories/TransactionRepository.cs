@@ -17,12 +17,12 @@ public class TransactionRepository : ITransactionRepository
         _context = context;
     }
 
-    //public async Task<Transaction?> GetByIdAsync(Guid id)
-    //{
-    //    return await _context.Transactions
-    //        .Include(t => t.Receipt)
-    //        .FirstOrDefaultAsync(t => t.Id == id);
-    //}
+    public async Task<Transaction?> GetByIdAsync(Guid id)
+    {
+        return await _context.Transactions
+            .Include(t => t.Receipt)
+            .FirstOrDefaultAsync(t => t.Id == id);
+    }
 
     public async Task<IEnumerable<Transaction>> GetByUserIdAsync(Guid userId)
     {
