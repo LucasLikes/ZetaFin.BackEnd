@@ -2,15 +2,14 @@
 using ZetaFin.Application.DTOs;
 using ZetaFin.Application.Interfaces;
 using ZetaFin.Domain.Entities;
-using ZetaFin.Persistence.Repositories;
 
 namespace ZetaFin.Application.Services;
 public class ExpenseService : IExpenseService
 {
-    private readonly ExpenseRepository _repository;
+    private readonly IExpenseRepository _repository;
     private readonly IMapper _mapper;
 
-    public ExpenseService(ExpenseRepository repository, IMapper mapper)
+    public ExpenseService(IExpenseRepository repository, IMapper mapper)
     {
         _repository = repository;
         _mapper = mapper;

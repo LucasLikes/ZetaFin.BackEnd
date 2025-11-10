@@ -19,13 +19,15 @@ public class ApplicationDbContext : DbContext
 
     // Novos DbSets
     public DbSet<Transaction> Transactions { get; set; }
-    //public DbSet<Receipt> Receipts { get; set; }
+    public DbSet<Receipt> Receipts { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
 
-        // Configurações existentes de User
+        // =================== CONFIGURAÇÕES EXISTENTES ===================
+
+        // User
         modelBuilder.Entity<User>()
             .HasKey(u => u.Id);
 
@@ -45,12 +47,7 @@ public class ApplicationDbContext : DbContext
             .Property(u => u.Role)
             .IsRequired();
 
-        modelBuilder.Entity<User>()
-            .HasMany(u => u.UserGoals)
-            .WithOne()
-            .HasForeignKey(ug => ug.UserId);
-
-        // Configurações de UserGoal
+        // UserGoal
         modelBuilder.Entity<UserGoal>()
             .HasKey(ug => new { ug.UserId, ug.GoalId });
 
@@ -64,7 +61,7 @@ public class ApplicationDbContext : DbContext
             .WithMany()
             .HasForeignKey(ug => ug.GoalId);
 
-        // Configurações de Expense
+        // Expense
         modelBuilder.Entity<Expense>()
             .Property(e => e.Name)
             .IsRequired();
@@ -73,7 +70,8 @@ public class ApplicationDbContext : DbContext
             .Property(e => e.Value)
             .HasColumnType("decimal(18,2)");
 
-        // === NOVAS CONFIGURAÇÕES PARA TRANSACTION ===
+        // =================== NOVAS CONFIGURAÇÕES - TRANSACTION ===================
+
         modelBuilder.Entity<Transaction>()
             .HasKey(t => t.Id);
 
@@ -103,8 +101,9 @@ public class ApplicationDbContext : DbContext
 
         modelBuilder.Entity<Transaction>()
             .Property(t => t.ReceiptOcrData)
-            .HasColumnType("TEXT"); // JSON armazenado como texto
+            .HasColumnType("TEXT");
 
+        // Índices para Transaction
         modelBuilder.Entity<Transaction>()
             .HasIndex(t => t.UserId);
 
@@ -114,49 +113,52 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<Transaction>()
             .HasIndex(t => new { t.UserId, t.Date });
 
-        //// Relacionamento Transaction -> Receipt (1:1)
-        //modelBuilder.Entity<Transaction>()
-        //    .HasOne(t => t.Receipt)
-        //    .WithOne(r => r.Transaction)
-        //    .HasForeignKey<Receipt>(r => r.TransactionId)
-        //    .OnDelete(DeleteBehavior.SetNull);
+        // Relacionamento Transaction -> Receipt (1:1 opcional)
+        modelBuilder.Entity<Transaction>()
+            .HasOne(t => t.Receipt)
+            .WithOne(r => r.Transaction)
+            .HasForeignKey<Receipt>(r => r.TransactionId)
+            .OnDelete(DeleteBehavior.SetNull)
+            .IsRequired(false);
 
-        //// === CONFIGURAÇÕES PARA RECEIPT ===
-        //modelBuilder.Entity<Receipt>()
-        //    .HasKey(r => r.Id);
+        // =================== NOVAS CONFIGURAÇÕES - RECEIPT ===================
 
-        //modelBuilder.Entity<Receipt>()
-        //    .Property(r => r.FileName)
-        //    .HasMaxLength(255)
-        //    .IsRequired();
+        modelBuilder.Entity<Receipt>()
+            .HasKey(r => r.Id);
 
-        //modelBuilder.Entity<Receipt>()
-        //    .Property(r => r.FileUrl)
-        //    .HasMaxLength(500)
-        //    .IsRequired();
+        modelBuilder.Entity<Receipt>()
+            .Property(r => r.FileName)
+            .HasMaxLength(255)
+            .IsRequired();
 
-        //modelBuilder.Entity<Receipt>()
-        //    .Property(r => r.MimeType)
-        //    .HasMaxLength(100)
-        //    .IsRequired();
+        modelBuilder.Entity<Receipt>()
+            .Property(r => r.FileUrl)
+            .HasMaxLength(500)
+            .IsRequired();
 
-        //modelBuilder.Entity<Receipt>()
-        //    .Property(r => r.OcrData)
-        //    .HasColumnType("TEXT"); // JSON armazenado como texto
+        modelBuilder.Entity<Receipt>()
+            .Property(r => r.MimeType)
+            .HasMaxLength(100)
+            .IsRequired();
 
-        //modelBuilder.Entity<Receipt>()
-        //    .HasIndex(r => r.UserId);
+        modelBuilder.Entity<Receipt>()
+            .Property(r => r.OcrDataJson)
+            .HasColumnType("TEXT");
 
-        //modelBuilder.Entity<Receipt>()
-        //    .HasIndex(r => r.TransactionId)
-        //    .IsUnique()
-        //    .HasFilter("[TransactionId] IS NOT NULL");
+        // Índices para Receipt
+        modelBuilder.Entity<Receipt>()
+            .HasIndex(r => r.UserId);
 
-        //// Relacionamento Receipt -> User
-        //modelBuilder.Entity<Receipt>()
-        //    .HasOne(r => r.User)
-        //    .WithMany()
-        //    .HasForeignKey(r => r.UserId)
-        //    .OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<Receipt>()
+            .HasIndex(r => r.TransactionId)
+            .IsUnique()
+            .HasFilter("[TransactionId] IS NOT NULL");
+
+        // Relacionamento Receipt -> User
+        modelBuilder.Entity<Receipt>()
+            .HasOne(r => r.User)
+            .WithMany()
+            .HasForeignKey(r => r.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

@@ -14,6 +14,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\ZetaFin.Domain\ZetaFin.Domain.csproj" />
+    <ProjectReference Include="..\ZetaFin.Application\ZetaFin.Application.csproj" />
   </ItemGroup>
 
   <PropertyGroup>

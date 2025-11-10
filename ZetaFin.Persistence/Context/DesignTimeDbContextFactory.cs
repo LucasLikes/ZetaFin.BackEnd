@@ -1,21 +1,25 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 using Microsoft.Extensions.Configuration;
-using ZetaFin.Persistence;
+using System.IO;
 
-public class DesignTimeDbContextFactory : IDesignTimeDbContextFactory<ApplicationDbContext>
+namespace ZetaFin.Persistence
 {
-    public ApplicationDbContext CreateDbContext(string[] args)
+    public class ApplicationDbContextFactory : IDesignTimeDbContextFactory<ApplicationDbContext>
     {
-        var optionsBuilder = new DbContextOptionsBuilder<ApplicationDbContext>();
+        public ApplicationDbContext CreateDbContext(string[] args)
+        {
+            var optionsBuilder = new DbContextOptionsBuilder<ApplicationDbContext>();
 
-        var configuration = new ConfigurationBuilder()
-            .SetBasePath(Directory.GetCurrentDirectory()) // Isso vai buscar no diretório atual
-            .AddJsonFile("..\\..\\..\\ZetaFin.API\\appsettings.json")  // Caminho relativo para o arquivo
-            .Build();
+            // Caminho absoluto para o appsettings.json da API
+            var configuration = new ConfigurationBuilder()
+                .SetBasePath(Path.Combine(Directory.GetCurrentDirectory(), "..\\ZetaFin.API"))
+                .AddJsonFile("appsettings.json", optional: false)
+                .Build();
 
-        optionsBuilder.UseSqlite(configuration.GetConnectionString("DefaultConnection"));
+            optionsBuilder.UseSqlite(configuration.GetConnectionString("DefaultConnection"));
 
-        return new ApplicationDbContext(optionsBuilder.Options);
+            return new ApplicationDbContext(optionsBuilder.Options);
+        }
     }
 }
