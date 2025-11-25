@@ -22,7 +22,9 @@ builder.Services.AddSwaggerWithJwt();
 
 // Configurar EF Core (use seu connection string real)
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+Console.WriteLine($"DB Path: {Path.GetFullPath("zetafin.db")}");
 
 // Configurar a autenticação JWT
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme) // Remover CookieAuthenticationDefaults, já que você está usando JWT
@@ -76,5 +78,14 @@ app.UseAuthentication();
 app.UseAuthorization();  // Habilita autorização
 
 app.MapControllers();
+
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    Console.WriteLine("Aplicando migrations...");
+    db.Database.Migrate();
+    Console.WriteLine("Migrations aplicadas com sucesso!");
+}
+
 
 app.Run();

@@ -1,0 +1,38 @@
+services:
+  zetafin-api:
+    build:
+      context: .
+      dockerfile: ZetaFin.API/Dockerfile
+    ports:
+      - "8080:8080"
+      - "8081:8081"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      POSTGRESQL_PASSWORD: TestPasswprd123
+      POSTGRESQL_USER: zetafin_adm
+      POSTGRESQL_DB: zetafin_db
+    depends_on:
+      - postgres
+    networks:
+      - zetafin_network
+
+  postgres:
+    image: postgres:13
+    environment:
+      POSTGRES_USER: zetafin_adm
+      POSTGRES_PASSWORD: TestPasswprd123
+      POSTGRES_DB: zetafin_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - zetafin_network
+
+networks:
+  zetafin_network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local
