@@ -11,7 +11,7 @@ public class Transaction : BaseEntity
     public string Description { get; private set; } = string.Empty;
     public string Category { get; private set; } = string.Empty;
     public ExpenseType? ExpenseType { get; private set; }
-    public DateTime Date { get; private set; }
+    public DateTime Date { get; private set; } = DateTime.UtcNow;
     public bool HasReceipt { get; private set; }
     public string? ReceiptUrl { get; private set; }
     public string? ReceiptOcrData { get; private set; } // JSON serializado

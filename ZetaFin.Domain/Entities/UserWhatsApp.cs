@@ -8,8 +8,8 @@ public class UserWhatsApp
     public Guid UserId { get; private set; }
     public string WhatsAppNumber { get; private set; } = string.Empty; // formato: +5511999999999
     public bool IsActive { get; private set; }
-    public DateTime CreatedAt { get; private set; }
-    public DateTime? LastMessageAt { get; private set; }
+    public DateTime CreatedAt { get; private set; } = DateTime.UtcNow;
+    public DateTime? LastMessageAt { get; private set; } = DateTime.UtcNow;
 
     // Navigation
     public User User { get; private set; } = null!;

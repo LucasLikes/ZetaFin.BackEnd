@@ -14,13 +14,13 @@ public class ReceiptDto
     public string MimeType { get; set; } = string.Empty;
     public bool OcrProcessed { get; set; }
     public OcrDataDto? OcrData { get; set; }
-    public DateTime CreatedAt { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }
 
 public class OcrDataDto
 {
     public string? MerchantName { get; set; }
-    public DateTime? ExtractedDate { get; set; }
+    public DateTime? ExtractedDate { get; set; } = DateTime.UtcNow;
     public decimal? ExtractedValue { get; set; }
     public string? Currency { get; set; }
     public List<OcrItemDto>? Items { get; set; }
