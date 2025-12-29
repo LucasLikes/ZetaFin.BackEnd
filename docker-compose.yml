@@ -1,0 +1,162 @@
+version: '3.9'
+
+services:
+  # ===================================
+  # PostgreSQL Database
+  # ===================================
+  postgres:
+    image: postgres:16-alpine
+    container_name: zetafin-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-zetafin}
+      POSTGRES_USER: ${DB_USER:-zetafin}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-zetafin_secure_password_change_in_production}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - zetafin-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-zetafin} -d ${DB_NAME:-zetafin}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ===================================
+  # ZetaFin API
+  # ===================================
+  api:
+    build:
+      context: .
+      dockerfile: ZetaFin.API/Dockerfile
+      args:
+        BUILD_CONFIGURATION: ${BUILD_CONFIGURATION:-Release}
+    container_name: zetafin-api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      # ASP.NET Core
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}
+      ASPNETCORE_URLS: http://+:8080
+      ASPNETCORE_HTTPS_PORTS: 8081
+      
+      # Database
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-zetafin}
+      DB_USER: ${DB_USER:-zetafin}
+      DB_PASSWORD: ${DB_PASSWORD:-zetafin_secure_password_change_in_production}
+      ConnectionStrings__DefaultConnection: "Host=postgres;Port=5432;Database=${DB_NAME:-zetafin};Username=${DB_USER:-zetafin};Password=${DB_PASSWORD:-zetafin_secure_password_change_in_production};Include Error Detail=true"
+      
+      # JWT
+      Jwt__Secret: ${JWT_SECRET:-zeta-fin-jwt-super-secret-key-12345678901234567890123456789012}
+      Jwt__Issuer: ${JWT_ISSUER:-ZetaFin}
+      Jwt__Audience: ${JWT_AUDIENCE:-ZetaFinUsers}
+      Jwt__ExpirationMinutes: ${JWT_EXPIRATION_MINUTES:-60}
+      
+      # Storage
+      Storage__BasePath: ${STORAGE_BASE_PATH:-/app/storage}
+      Storage__BaseUrl: ${STORAGE_BASE_URL:-http://localhost:8080/storage}
+      
+      # Logging
+      Logging__LogLevel__Default: ${LOG_LEVEL:-Information}
+      Logging__LogLevel__Microsoft.AspNetCore: Warning
+      
+    ports:
+      - "${API_PORT:-8080}:8080"
+      - "${API_HTTPS_PORT:-8081}:8081"
+    volumes:
+      - api_storage:/app/storage
+      - api_logs:/app/logs
+    networks:
+      - zetafin-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # ===================================
+  # RabbitMQ (Message Queue)
+  # ===================================
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: zetafin-rabbitmq
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-zetafin}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-zetafin_rabbitmq_password}
+      RABBITMQ_DEFAULT_VHOST: /
+    ports:
+      - "${RABBITMQ_PORT:-5672}:5672"
+      - "${RABBITMQ_MANAGEMENT_PORT:-15672}:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+      - rabbitmq_logs:/var/log/rabbitmq
+    networks:
+      - zetafin-network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "status"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+
+  # # ===================================
+  # # PgAdmin (Opcional - apenas dev)
+  # # ===================================
+  # pgadmin:
+  #   image: dpage/pgadmin4:latest
+  #   container_name: zetafin-pgadmin
+  #   restart: unless-stopped
+  #   profiles: ["dev", "admin"]
+  #   environment:
+  #     PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@zetafin.com}
+  #     PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin123}
+  #     PGADMIN_CONFIG_SERVER_MODE: 'False'
+  #     PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: 'False'
+  #   ports:
+  #     - "${PGADMIN_PORT:-5050}:80"
+  #   volumes:
+  #     - pgadmin_data:/var/lib/pgadmin
+  #   networks:
+  #     - zetafin-network
+  #   depends_on:
+  #     - postgres
+
+# ===================================
+# Volumes
+# ===================================
+volumes:
+  postgres_data:
+    driver: local
+  api_storage:
+    driver: local
+  api_logs:
+    driver: local
+  rabbitmq_data:
+    driver: local
+  rabbitmq_logs:
+    driver: local
+  pgadmin_data:
+    driver: local
+
+# ===================================
+# Networks
+# ===================================
+networks:
+  zetafin-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16

@@ -22,7 +22,6 @@
   <ItemGroup>
     <ProjectReference Include="..\ZetaFin.API\ZetaFin.API.csproj" />
     <ProjectReference Include="..\ZetaFin.Application\ZetaFin.Application.csproj" />
-    <ProjectReference Include="..\ZetaFin\ZetaFin.API.csproj" />
   </ItemGroup>
 
   <ItemGroup>

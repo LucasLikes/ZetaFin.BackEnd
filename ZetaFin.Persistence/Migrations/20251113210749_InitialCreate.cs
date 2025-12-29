@@ -177,6 +177,28 @@ namespace ZetaFin.Persistence.Migrations
                         onDelete: ReferentialAction.Cascade);
                 });
 
+            migrationBuilder.CreateTable(
+                name: "UserWhatsApps",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "TEXT", nullable: false),
+                    UserId = table.Column<Guid>(type: "TEXT", nullable: false),
+                    WhatsAppNumber = table.Column<string>(type: "TEXT", maxLength: 20, nullable: false),
+                    IsActive = table.Column<bool>(type: "INTEGER", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
+                    LastMessageAt = table.Column<DateTime>(type: "TEXT", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_UserWhatsApps", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_UserWhatsApps_Users_UserId",
+                        column: x => x.UserId,
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
             migrationBuilder.CreateIndex(
                 name: "IX_Deposits_GoalId",
                 table: "Deposits",
@@ -223,6 +245,17 @@ namespace ZetaFin.Persistence.Migrations
                 name: "IX_UserGoals_GoalId1",
                 table: "UserGoals",
                 column: "GoalId1");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_UserWhatsApps_UserId",
+                table: "UserWhatsApps",
+                column: "UserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_UserWhatsApps_WhatsAppNumber",
+                table: "UserWhatsApps",
+                column: "WhatsAppNumber",
+                unique: true);
         }
 
         /// <inheritdoc />
@@ -239,6 +272,9 @@ namespace ZetaFin.Persistence.Migrations
 
             migrationBuilder.DropTable(
                 name: "UserGoals");
+
+            migrationBuilder.DropTable(
+                name: "UserWhatsApps");
 
             migrationBuilder.DropTable(
                 name: "Transactions");

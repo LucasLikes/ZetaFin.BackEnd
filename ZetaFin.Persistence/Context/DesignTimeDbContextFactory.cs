@@ -3,23 +3,28 @@ using Microsoft.EntityFrameworkCore.Design;
 using Microsoft.Extensions.Configuration;
 using System.IO;
 
-namespace ZetaFin.Persistence
-{
-    public class ApplicationDbContextFactory : IDesignTimeDbContextFactory<ApplicationDbContext>
+namespace ZetaFin.Persistence;
+    public class DesignTimeDbContextFactory : IDesignTimeDbContextFactory<ApplicationDbContext>
     {
         public ApplicationDbContext CreateDbContext(string[] args)
         {
-            var optionsBuilder = new DbContextOptionsBuilder<ApplicationDbContext>();
-
             // Caminho absoluto para o appsettings.json da API
+            var configPath = @"C:\Users\lucas\source\repos\ZetaFin.BackEnd\ZetaFin.API\appsettings.json";
+
+            if (!File.Exists(configPath))
+            {
+                throw new FileNotFoundException($"❌ Não foi possível localizar o arquivo de configuração em: {configPath}");
+            }
+
             var configuration = new ConfigurationBuilder()
-                .SetBasePath(Path.Combine(Directory.GetCurrentDirectory(), "..\\ZetaFin.API"))
-                .AddJsonFile("appsettings.json", optional: false)
+                .AddJsonFile(configPath, optional: false)
                 .Build();
 
-            optionsBuilder.UseSqlite(configuration.GetConnectionString("DefaultConnection"));
+            var optionsBuilder = new DbContextOptionsBuilder<ApplicationDbContext>();
+            optionsBuilder.UseNpgsql(configuration.GetConnectionString("DefaultConnection"));
+
 
             return new ApplicationDbContext(optionsBuilder.Options);
         }
+
     }
-}

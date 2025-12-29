@@ -11,7 +11,7 @@ using ZetaFin.Persistence;
 namespace ZetaFin.Persistence.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20251110181124_InitialCreate")]
+    [Migration("20251113210749_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -280,6 +280,39 @@ namespace ZetaFin.Persistence.Migrations
                     b.ToTable("UserGoals");
                 });
 
+            modelBuilder.Entity("ZetaFin.Domain.Entities.UserWhatsApp", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("LastMessageAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("WhatsAppNumber")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("WhatsAppNumber")
+                        .IsUnique();
+
+                    b.ToTable("UserWhatsApps");
+                });
+
             modelBuilder.Entity("ZetaFin.Domain.Entities.Deposit", b =>
                 {
                     b.HasOne("ZetaFin.Domain.Entities.Goal", "Goal")
@@ -336,6 +369,17 @@ namespace ZetaFin.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("Goal");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("ZetaFin.Domain.Entities.UserWhatsApp", b =>
+                {
+                    b.HasOne("ZetaFin.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("User");
                 });
