@@ -11,8 +11,8 @@ public class Goal
     public string Description { get; private set; } = string.Empty;
     public decimal TargetAmount { get; private set; }
     public decimal CurrentAmount { get; private set; }
-    public DateTime CreatedAt { get; private set; }
-    public DateTime? TargetDate { get; private set; }
+    public DateTime CreatedAt { get; private set; } = DateTime.UtcNow;
+    public DateTime? TargetDate { get; private set; } = DateTime.UtcNow;
     public ICollection<UserGoal> UserGoals { get; private set; } = new List<UserGoal>();
 
     public int RemainingMonths

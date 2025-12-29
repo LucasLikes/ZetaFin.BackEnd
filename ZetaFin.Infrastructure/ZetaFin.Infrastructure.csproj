@@ -1,6 +1,10 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <PackageReference Include="AutoMapper" Version="13.0.1" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\ZetaFin.Domain\ZetaFin.Domain.csproj" />
     <ProjectReference Include="..\ZetaFin.Application\ZetaFin.Application.csproj" />
   </ItemGroup>

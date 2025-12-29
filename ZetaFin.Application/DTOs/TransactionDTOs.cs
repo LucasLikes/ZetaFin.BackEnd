@@ -59,12 +59,12 @@ public class TransactionDto
     public string Description { get; set; } = string.Empty;
     public string Category { get; set; } = string.Empty;
     public string? ExpenseType { get; set; }
-    public DateTime Date { get; set; }
+    public DateTime Date { get; set; } = DateTime.UtcNow;
     public bool HasReceipt { get; set; }
     public string? ReceiptUrl { get; set; }
     public object? ReceiptOcrData { get; set; }
-    public DateTime CreatedAt { get; set; }
-    public DateTime? UpdatedAt { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime? UpdatedAt { get; set; } = DateTime.UtcNow;
 }
 
 // DTO para listagem com paginação

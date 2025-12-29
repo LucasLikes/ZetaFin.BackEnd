@@ -10,7 +10,7 @@ namespace ZetaFin.Domain.Entities
         public decimal Value { get; set; }
         public string Category { get; set; } = string.Empty;
         public DateTime Date { get; set; } = DateTime.UtcNow;
-        public DateTime? DueDate { get; set; }
+        public DateTime? DueDate { get; set; } = DateTime.UtcNow;
 
         // Regras básicas de domínio
         public bool IsOverdue => DueDate.HasValue && DueDate.Value < DateTime.UtcNow;

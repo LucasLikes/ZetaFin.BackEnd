@@ -12,6 +12,6 @@ public class GoalDto
     public string Description { get; set; } = string.Empty;
     public decimal TargetAmount { get; set; }
     public decimal CurrentAmount { get; set; }
-    public DateTime CreatedAt { get; set; }
-    public DateTime? TargetDate { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime? TargetDate { get; set; } = DateTime.UtcNow;
 }

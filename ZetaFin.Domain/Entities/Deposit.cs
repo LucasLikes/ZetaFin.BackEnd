@@ -12,7 +12,7 @@ public class Deposit
 
     public Guid Id { get; private set; }
     public decimal Amount { get; private set; }
-    public DateTime Date { get; private set; }
+    public DateTime Date { get; private set; } = DateTime.UtcNow;
     public string Source { get; private set; } = string.Empty;
     public Guid GoalId { get; private set; }
     public Goal Goal { get; private set; }
