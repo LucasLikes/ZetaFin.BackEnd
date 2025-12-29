@@ -17,6 +17,8 @@ public class User
 
     public bool IsEmailConfirmed { get; private set; } = false;
 
+    public ICollection<UserWhatsApp> UserWhatsApps { get; private set; } = new List<UserWhatsApp>();
+
     public User() { }
 
     public User(string name, string email, string password, string role = "User")

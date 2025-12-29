@@ -2,6 +2,7 @@
 using ZetaFin.Domain.Entities;
 
 namespace ZetaFin.Persistence;
+
 public class ApplicationDbContext : DbContext
 {
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
@@ -9,268 +10,238 @@ public class ApplicationDbContext : DbContext
 
     public ApplicationDbContext() { }
 
-    // DbSets existentes
+    // DbSets
     public DbSet<Goal> Goals { get; set; }
     public DbSet<Deposit> Deposits { get; set; }
     public DbSet<User> Users { get; set; }
     public DbSet<UserGoal> UserGoals { get; set; }
     public DbSet<Expense> Expenses { get; set; }
-    public DbSet<UserWhatsApp> UserWhatsApps { get; set; }
-
-    // Novos DbSets
     public DbSet<Transaction> Transactions { get; set; }
     public DbSet<Receipt> Receipts { get; set; }
+    public DbSet<UserWhatsApp> UserWhatsApps { get; set; }
+
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
 
-        // =================== CONFIGURAÇÕES EXISTENTES ===================
+        // =================== USER ===================
+        modelBuilder.Entity<User>(entity =>
+        {
+            entity.HasKey(u => u.Id);
 
-        // User
-        modelBuilder.Entity<User>()
-            .HasKey(u => u.Id);
+            entity.Property(u => u.Name)
+                .IsRequired()
+                .HasMaxLength(200);
 
-        modelBuilder.Entity<User>()
-            .Property(u => u.Name)
-            .IsRequired();
+            entity.Property(u => u.Email)
+                .IsRequired()
+                .HasMaxLength(255);
 
-        modelBuilder.Entity<User>()
-            .Property(u => u.Email)
-            .IsRequired();
+            entity.HasIndex(u => u.Email)
+                .IsUnique();
 
-        modelBuilder.Entity<User>()
-            .Property(u => u.PasswordHash)
-            .IsRequired();
+            entity.Property(u => u.PasswordHash)
+                .IsRequired();
 
-        modelBuilder.Entity<User>()
-            .Property(u => u.Role)
-            .IsRequired();
+            entity.Property(u => u.Role)
+                .IsRequired()
+                .HasMaxLength(50);
+        });
 
-        // UserGoal
-        modelBuilder.Entity<UserGoal>()
-            .HasKey(ug => new { ug.UserId, ug.GoalId });
+        // =================== GOAL ===================
+        modelBuilder.Entity<Goal>(entity =>
+        {
+            entity.HasKey(g => g.Id);
 
-        modelBuilder.Entity<UserGoal>()
-            .HasOne(ug => ug.User)
-            .WithMany(u => u.UserGoals)
-            .HasForeignKey(ug => ug.UserId);
+            entity.Property(g => g.Description)
+                .IsRequired()
+                .HasMaxLength(500);
 
-        modelBuilder.Entity<UserGoal>()
-            .HasOne(ug => ug.Goal)
-            .WithMany()
-            .HasForeignKey(ug => ug.GoalId);
+            entity.Property(g => g.TargetAmount)
+                .HasColumnType("decimal(18,2)")
+                .IsRequired();
 
-        // Expense
-        modelBuilder.Entity<Expense>()
-            .Property(e => e.Name)
-            .IsRequired();
+            entity.Property(g => g.CurrentAmount)
+                .HasColumnType("decimal(18,2)")
+                .IsRequired();
 
-        modelBuilder.Entity<Expense>()
-            .Property(e => e.Value)
-            .HasColumnType("decimal(18,2)");
+            entity.Property(g => g.CreatedAt)
+                .IsRequired();
 
+            entity.HasIndex(g => g.CreatedAt);
+        });
 
-        // =================== NOVAS CONFIGURAÇÕES - TRANSACTION ===================
+        // =================== DEPOSIT ===================
+        modelBuilder.Entity<Deposit>(entity =>
+        {
+            entity.HasKey(d => d.Id);
 
-        modelBuilder.Entity<Transaction>()
-            .HasKey(t => t.Id);
+            entity.Property(d => d.Amount)
+                .HasColumnType("decimal(18,2)")
+                .IsRequired();
 
-        modelBuilder.Entity<Transaction>()
-            .Property(t => t.Value)
-            .HasColumnType("decimal(18,2)")
-            .IsRequired();
+            entity.Property(d => d.Source)
+                .IsRequired()
+                .HasMaxLength(200);
 
-        modelBuilder.Entity<Transaction>()
-            .Property(t => t.Description)
-            .HasMaxLength(500)
-            .IsRequired();
+            entity.HasOne(d => d.Goal)
+                .WithMany(g => g.Deposits)
+                .HasForeignKey(d => d.GoalId)
+                .OnDelete(DeleteBehavior.Cascade);
 
-        modelBuilder.Entity<Transaction>()
-            .Property(t => t.Category)
-            .HasMaxLength(100)
-            .IsRequired();
+            entity.HasOne(d => d.User)
+                .WithMany()
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
 
-        modelBuilder.Entity<Transaction>()
-            .Property(t => t.Type)
-            .HasConversion<string>()
-            .IsRequired();
+            entity.HasIndex(d => d.Date);
+        });
 
-        modelBuilder.Entity<Transaction>()
-            .Property(t => t.ExpenseType)
-            .HasConversion<string>();
+        // =================== USER GOAL ===================
+        modelBuilder.Entity<UserGoal>(entity =>
+        {
+            entity.HasKey(ug => new { ug.UserId, ug.GoalId });
 
-        modelBuilder.Entity<Transaction>()
-            .Property(t => t.ReceiptOcrData)
-            .HasColumnType("TEXT");
+            entity.Property(ug => ug.CustomMonthlyTarget)
+                .HasColumnType("decimal(18,2)");
 
-        // Índices para Transaction
-        modelBuilder.Entity<Transaction>()
-            .HasIndex(t => t.UserId);
+            entity.HasOne(ug => ug.User)
+                .WithMany(u => u.UserGoals)
+                .HasForeignKey(ug => ug.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
 
-        modelBuilder.Entity<Transaction>()
-            .HasIndex(t => t.Date);
+            entity.HasOne(ug => ug.Goal)
+                .WithMany()
+                .HasForeignKey(ug => ug.GoalId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
 
-        modelBuilder.Entity<Transaction>()
-            .HasIndex(t => new { t.UserId, t.Date });
+        // =================== EXPENSE ===================
+        modelBuilder.Entity<Expense>(entity =>
+        {
+            entity.HasKey(e => e.Id);
 
-        // Relacionamento Transaction -> Receipt (1:1 opcional)
-        modelBuilder.Entity<Transaction>()
-            .HasOne(t => t.Receipt)
-            .WithOne(r => r.Transaction)
-            .HasForeignKey<Receipt>(r => r.TransactionId)
-            .OnDelete(DeleteBehavior.SetNull)
-            .IsRequired(false);
+            entity.Property(e => e.Name)
+                .IsRequired()
+                .HasMaxLength(200);
 
-        // =================== NOVAS CONFIGURAÇÕES - RECEIPT ===================
+            entity.Property(e => e.Value)
+                .HasColumnType("decimal(18,2)")
+                .IsRequired();
 
-        modelBuilder.Entity<Receipt>()
-            .HasKey(r => r.Id);
+            entity.Property(e => e.Category)
+                .IsRequired()
+                .HasMaxLength(100);
 
-        modelBuilder.Entity<Receipt>()
-            .Property(r => r.FileName)
-            .HasMaxLength(255)
-            .IsRequired();
+            entity.HasIndex(e => e.UserId);
+            entity.HasIndex(e => e.Date);
+        });
 
-        modelBuilder.Entity<Receipt>()
-            .Property(r => r.FileUrl)
-            .HasMaxLength(500)
-            .IsRequired();
+        // =================== TRANSACTION ===================
+        modelBuilder.Entity<Transaction>(entity =>
+        {
+            entity.HasKey(t => t.Id);
 
-        modelBuilder.Entity<Receipt>()
-            .Property(r => r.MimeType)
-            .HasMaxLength(100)
-            .IsRequired();
+            entity.Property(t => t.Value)
+                .HasColumnType("decimal(18,2)")
+                .IsRequired();
 
-        modelBuilder.Entity<Receipt>()
-            .Property(r => r.OcrDataJson)
-            .HasColumnType("TEXT");
+            entity.Property(t => t.Description)
+                .HasMaxLength(500)
+                .IsRequired();
 
-        // Índices para Receipt
-        modelBuilder.Entity<Receipt>()
-            .HasIndex(r => r.UserId);
+            entity.Property(t => t.Category)
+                .HasMaxLength(100)
+                .IsRequired();
 
-        modelBuilder.Entity<Receipt>()
-            .HasIndex(r => r.TransactionId)
-            .IsUnique()
-            .HasFilter("[TransactionId] IS NOT NULL");
+            entity.Property(t => t.Type)
+                .HasConversion<string>()
+                .IsRequired();
 
-        // Relacionamento Receipt -> User
-        modelBuilder.Entity<Receipt>()
-            .HasOne(r => r.User)
-            .WithMany()
-            .HasForeignKey(r => r.UserId)
-            .OnDelete(DeleteBehavior.Cascade);
+            entity.Property(t => t.ExpenseType)
+                .HasConversion<string>();
 
-        // =================== NOVAS CONFIGURAÇÕES - TRANSACTION ===================
+            entity.HasIndex(t => t.UserId);
+            entity.HasIndex(t => t.Date);
+            entity.HasIndex(t => new { t.UserId, t.Date });
+            entity.HasIndex(t => t.Type);
 
-        modelBuilder.Entity<Transaction>()
-            .HasKey(t => t.Id);
+            // Relacionamento 1:1 com Receipt
+            entity.HasOne(t => t.Receipt)
+                .WithOne(r => r.Transaction)
+                .HasForeignKey<Receipt>(r => r.TransactionId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .IsRequired(false);
+        });
 
-        modelBuilder.Entity<Transaction>()
-            .Property(t => t.Value)
-            .HasColumnType("decimal(18,2)")
-            .IsRequired();
+        // =================== RECEIPT ===================
+        modelBuilder.Entity<Receipt>(entity =>
+        {
+            entity.HasKey(r => r.Id);
 
-        modelBuilder.Entity<Transaction>()
-            .Property(t => t.Description)
-            .HasMaxLength(500)
-            .IsRequired();
+            entity.Property(r => r.FileName)
+                .HasMaxLength(255)
+                .IsRequired();
 
-        modelBuilder.Entity<Transaction>()
-            .Property(t => t.Category)
-            .HasMaxLength(100)
-            .IsRequired();
+            entity.Property(r => r.FileUrl)
+                .HasMaxLength(500)
+                .IsRequired();
 
-        modelBuilder.Entity<Transaction>()
-            .Property(t => t.Type)
-            .HasConversion<string>()
-            .IsRequired();
+            entity.Property(r => r.MimeType)
+                .HasMaxLength(100)
+                .IsRequired();
 
-        modelBuilder.Entity<Transaction>()
-            .Property(t => t.ExpenseType)
-            .HasConversion<string>();
+            entity.Property(r => r.OcrDataJson)
+                .HasColumnType("jsonb"); // PostgreSQL JSONB para melhor performance
 
-        modelBuilder.Entity<Transaction>()
-            .Property(t => t.ReceiptOcrData)
-            .HasColumnType("TEXT");
+            entity.HasIndex(r => r.UserId);
+            entity.HasIndex(r => r.TransactionId)
+                .IsUnique()
+                .HasFilter("\"TransactionId\" IS NOT NULL");
 
-        // Índices para Transaction
-        modelBuilder.Entity<Transaction>()
-            .HasIndex(t => t.UserId);
+            entity.HasOne(r => r.User)
+                .WithMany()
+                .HasForeignKey(r => r.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
 
-        modelBuilder.Entity<Transaction>()
-            .HasIndex(t => t.Date);
+        // =================== USER WHATSAPP ===================
+        modelBuilder.Entity<UserWhatsApp>(entity =>
+        {
+            entity.HasKey(w => w.Id);
 
-        modelBuilder.Entity<Transaction>()
-            .HasIndex(t => new { t.UserId, t.Date });
+            entity.Property(w => w.WhatsAppNumber)
+                .IsRequired()
+                .HasMaxLength(20);
 
-        // Relacionamento Transaction -> Receipt (1:1 opcional)
-        modelBuilder.Entity<Transaction>()
-            .HasOne(t => t.Receipt)
-            .WithOne(r => r.Transaction)
-            .HasForeignKey<Receipt>(r => r.TransactionId)
-            .OnDelete(DeleteBehavior.SetNull)
-            .IsRequired(false);
+            entity.Property(w => w.IsActive)
+                .IsRequired();
 
-        // =================== NOVAS CONFIGURAÇÕES - RECEIPT ===================
+            entity.Property(w => w.CreatedAt)
+                .IsRequired();
 
-        modelBuilder.Entity<Receipt>()
-            .HasKey(r => r.Id);
+            entity.HasIndex(w => w.UserId);
+            entity.HasIndex(w => w.WhatsAppNumber).IsUnique();
 
-        modelBuilder.Entity<Receipt>()
-            .Property(r => r.FileName)
-            .HasMaxLength(255)
-            .IsRequired();
+            entity.HasOne(w => w.User)
+                .WithMany(u => u.UserWhatsApps)
+                .HasForeignKey(w => w.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+    }
 
-        modelBuilder.Entity<Receipt>()
-            .Property(r => r.FileUrl)
-            .HasMaxLength(500)
-            .IsRequired();
+    // Método opcional para seed data inicial
+    private void SeedData(ModelBuilder modelBuilder)
+    {
+        // Exemplo: criar usuário admin padrão
+        var adminId = Guid.Parse("00000000-0000-0000-0000-000000000001");
 
-        modelBuilder.Entity<Receipt>()
-            .Property(r => r.MimeType)
-            .HasMaxLength(100)
-            .IsRequired();
-
-        modelBuilder.Entity<Receipt>()
-            .Property(r => r.OcrDataJson)
-            .HasColumnType("TEXT");
-
-        // Índices para Receipt
-        modelBuilder.Entity<Receipt>()
-            .HasIndex(r => r.UserId);
-
-        modelBuilder.Entity<Receipt>()
-            .HasIndex(r => r.TransactionId)
-            .IsUnique()
-            .HasFilter("[TransactionId] IS NOT NULL");
-
-        // Relacionamento Receipt -> User
-        modelBuilder.Entity<Receipt>()
-            .HasOne(r => r.User)
-            .WithMany()
-            .HasForeignKey(r => r.UserId)
-            .OnDelete(DeleteBehavior.Cascade);
-
-
-        // ======= UserWhatsApp Configuration ========
-        modelBuilder.Entity<UserWhatsApp>()
-            .HasKey(uw => uw.Id);
-
-        modelBuilder.Entity<UserWhatsApp>()
-            .Property(uw => uw.WhatsAppNumber)
-            .HasMaxLength(20)
-            .IsRequired();
-
-        modelBuilder.Entity<UserWhatsApp>()
-            .HasIndex(uw => uw.WhatsAppNumber)
-            .IsUnique();
-
-        modelBuilder.Entity<UserWhatsApp>()
-            .HasOne(uw => uw.User)
-            .WithMany()
-            .HasForeignKey(uw => uw.UserId)
-            .OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<User>().HasData(
+            new User("Admin", "admin@zetafin.com", "Admin@123", "Admin")
+            {
+                // Note: você precisará criar um construtor que aceite o Id
+            }
+        );
     }
 }

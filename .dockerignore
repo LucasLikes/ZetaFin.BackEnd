@@ -28,3 +28,14 @@ README.md
 !.git/config
 !.git/packed-refs
 !.git/refs/heads/**
+
+# Arquivos específicos do projeto
+**/logs
+**/storage
+**/temp
+**/*.db
+**/*.db-shm
+**/*.db-wal
+**/zetafin.db
+**/.idea
+**/TestResults
