@@ -7,7 +7,7 @@ using ZetaFin.Domain.Entities;
 
 namespace ZetaFin.Domain.Interfaces;
 
-public interface IDepositRepository
+public interface ExpenseCategories
 {
     Task AddAsync(Deposit deposit);
     Task<IEnumerable<Deposit>> GetByGoalIdAsync(Guid goalId);

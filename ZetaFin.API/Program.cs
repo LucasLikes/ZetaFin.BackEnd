@@ -59,7 +59,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 // Repositories
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IGoalRepository, GoalRepository>();
-builder.Services.AddScoped<IDepositRepository, DepositRepository>();
+builder.Services.AddScoped<ExpenseCategories, DepositRepository>();
 builder.Services.AddScoped<IUserGoalRepository, UserGoalRepository>();
 builder.Services.AddScoped<IExpenseRepository, ExpenseRepository>();
 builder.Services.AddScoped<ITransactionRepository, TransactionRepository>();

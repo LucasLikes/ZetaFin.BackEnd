@@ -4,7 +4,7 @@ using ZetaFin.Domain.Interfaces;
 
 namespace ZetaFin.Persistence.Repositories;
 
-public class DepositRepository : IDepositRepository
+public class DepositRepository : ExpenseCategories
 {
     private readonly ApplicationDbContext _context;
 
