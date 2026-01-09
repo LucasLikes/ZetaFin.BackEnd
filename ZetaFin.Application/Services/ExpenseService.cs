@@ -2,8 +2,10 @@
 using ZetaFin.Application.DTOs;
 using ZetaFin.Application.Interfaces;
 using ZetaFin.Domain.Entities;
+using ZetaFin.Domain.Constants;
 
 namespace ZetaFin.Application.Services;
+
 public class ExpenseService : IExpenseService
 {
     private readonly IExpenseRepository _repository;
@@ -69,8 +71,36 @@ public class ExpenseService : IExpenseService
     public async Task<Dictionary<string, decimal>> GetSummaryByCategoryAsync(string userId)
     {
         var expenses = await _repository.GetByUserIdAsync(userId);
-        return expenses
+
+        // Inicializa com categorias zeradas
+        var result = ExpenseCategories.GetDefaultSummary();
+
+        // Se não houver despesas, retorna as categorias zeradas
+        if (!expenses.Any())
+        {
+            return result;
+        }
+
+        // Agrupa despesas por categoria e soma valores
+        var summaryFromDb = expenses
             .GroupBy(e => e.Category)
             .ToDictionary(g => g.Key, g => g.Sum(e => e.Value));
+
+        // Mescla valores reais nas categorias padrão
+        foreach (var category in summaryFromDb)
+        {
+            // Se categoria existe no padrão, atualiza
+            if (result.ContainsKey(category.Key))
+            {
+                result[category.Key] = category.Value;
+            }
+            // Se categoria customizada, adiciona também
+            else
+            {
+                result[category.Key] = category.Value;
+            }
+        }
+
+        return result;
     }
 }

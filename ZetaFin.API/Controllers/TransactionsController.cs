@@ -1,284 +1,232 @@
 ﻿using System;
-using System.Security.Claims;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
 using ZetaFin.Application.DTOs;
 using ZetaFin.Application.Interfaces;
+using ZetaFin.Domain.Entities;
+using ZetaFin.Domain.Interfaces;
 
-namespace ZetaFin.API.Controllers;
+namespace ZetaFin.Application.Services;
 
-[ApiController]
-[Route("api/[controller]")]
-[Authorize]
-public class TransactionsController : ControllerBase
+public class TransactionService : ITransactionService
 {
-    private readonly ITransactionService _transactionService;
+    private readonly ITransactionRepository _transactionRepository;
+    private readonly IUserRepository _userRepository;
 
-    public TransactionsController(ITransactionService transactionService)
+    public TransactionService(
+        ITransactionRepository transactionRepository,
+        IUserRepository userRepository)
     {
-        _transactionService = transactionService;
+        _transactionRepository = transactionRepository;
+        _userRepository = userRepository;
     }
 
-    private Guid GetUserId()
+    public async Task<TransactionDto> CreateAsync(Guid userId, CreateTransactionDto dto)
     {
-        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        if (string.IsNullOrEmpty(userIdClaim))
-            throw new UnauthorizedAccessException("Usuário não autenticado");
+        // Validar se o usuário existe
+        var user = await _userRepository.GetByIdAsync(userId);
+        if (user == null)
+            throw new Exception("Usuário não encontrado");
 
-        return Guid.Parse(userIdClaim);
+        // IMPORTANTE: Garantir que a data está em UTC
+        var dateUtc = dto.Date.Kind == DateTimeKind.Utc
+            ? dto.Date
+            : DateTime.SpecifyKind(dto.Date, DateTimeKind.Utc);
+
+        var transaction = new Transaction(
+            userId,
+            dto.Type,
+            dto.Value,
+            dto.Description,
+            dto.Category,
+            dateUtc, // Usa data em UTC
+            dto.ExpenseType
+        );
+
+        await _transactionRepository.AddAsync(transaction);
+
+        return MapToDto(transaction);
     }
 
-    /// <summary>
-    /// Cria uma nova transação (receita ou despesa)
-    /// </summary>
-    [HttpPost]
-    [ProducesResponseType(typeof(ApiResponse<TransactionDto>), 201)]
-    [ProducesResponseType(400)]
-    public async Task<IActionResult> Create([FromBody] CreateTransactionDto dto)
+    public async Task<TransactionDto?> GetByIdAsync(Guid id)
     {
-        try
-        {
-            var userId = GetUserId();
-            var transaction = await _transactionService.CreateAsync(userId, dto);
-
-            return CreatedAtAction(
-                nameof(GetById),
-                new { id = transaction.Id },
-                new ApiResponse<TransactionDto>
-                {
-                    Success = true,
-                    Message = "Transação criada com sucesso",
-                    Data = transaction
-                });
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(new ApiResponse<object>
-            {
-                Success = false,
-                Error = new ErrorDetails
-                {
-                    Code = "VALIDATION_ERROR",
-                    Message = ex.Message
-                }
-            });
-        }
+        var transaction = await _transactionRepository.GetByIdAsync(id);
+        return transaction == null ? null : MapToDto(transaction);
     }
 
-    /// <summary>
-    /// Lista transações com filtros e paginação
-    /// </summary>
-    [HttpGet]
-    [ProducesResponseType(typeof(ApiResponse<TransactionListDto>), 200)]
-    public async Task<IActionResult> GetAll([FromQuery] TransactionQueryDto query)
+    public async Task<TransactionListDto> GetFilteredAsync(
+        Guid userId,
+        TransactionQueryDto query)
     {
-        try
+        var skip = (query.Page - 1) * query.Limit;
+
+        // CORREÇÃO: Converter datas para UTC antes de consultar
+        DateTime? startDateUtc = ConvertToUtc(query.StartDate);
+        DateTime? endDateUtc = ConvertToUtc(query.EndDate);
+
+        var transactions = await _transactionRepository.GetFilteredAsync(
+            userId,
+            query.Type,
+            startDateUtc,
+            endDateUtc,
+            query.Category,
+            query.ExpenseType,
+            skip,
+            query.Limit
+        );
+
+        var totalItems = await _transactionRepository.CountFilteredAsync(
+            userId,
+            query.Type,
+            startDateUtc,
+            endDateUtc,
+            query.Category,
+            query.ExpenseType
+        );
+
+        var totalPages = (int)Math.Ceiling(totalItems / (double)query.Limit);
+
+        // Calcular resumo
+        var totalIncome = await _transactionRepository.GetTotalIncomeAsync(
+            userId, startDateUtc, endDateUtc);
+        var totalExpense = await _transactionRepository.GetTotalExpenseAsync(
+            userId, startDateUtc, endDateUtc);
+
+        return new TransactionListDto
         {
-            var userId = GetUserId();
-            var result = await _transactionService.GetFilteredAsync(userId, query);
-
-            return Ok(new ApiResponse<TransactionListDto>
+            Transactions = transactions.Select(MapToDto).ToList(),
+            Pagination = new PaginationDto
             {
-                Success = true,
-                Data = result
-            });
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(new ApiResponse<object>
+                CurrentPage = query.Page,
+                TotalPages = totalPages,
+                TotalItems = totalItems,
+                ItemsPerPage = query.Limit
+            },
+            Summary = new TransactionSummaryDto
             {
-                Success = false,
-                Error = new ErrorDetails
-                {
-                    Code = "QUERY_ERROR",
-                    Message = ex.Message
-                }
-            });
-        }
-    }
-
-    /// <summary>
-    /// Obtém uma transação específica por ID
-    /// </summary>
-    [HttpGet("{id}")]
-    [ProducesResponseType(typeof(ApiResponse<TransactionDto>), 200)]
-    [ProducesResponseType(404)]
-    public async Task<IActionResult> GetById(Guid id)
-    {
-        try
-        {
-            var transaction = await _transactionService.GetByIdAsync(id);
-            if (transaction == null)
-                return NotFound(new ApiResponse<object>
-                {
-                    Success = false,
-                    Error = new ErrorDetails
-                    {
-                        Code = "RESOURCE_NOT_FOUND",
-                        Message = "Transação não encontrada"
-                    }
-                });
-
-            // Verificar se a transação pertence ao usuário
-            var userId = GetUserId();
-            if (transaction.UserId != userId)
-                return Forbid();
-
-            return Ok(new ApiResponse<TransactionDto>
-            {
-                Success = true,
-                Data = transaction
-            });
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(new ApiResponse<object>
-            {
-                Success = false,
-                Error = new ErrorDetails
-                {
-                    Code = "QUERY_ERROR",
-                    Message = ex.Message
-                }
-            });
-        }
-    }
-
-    /// <summary>
-    /// Atualiza uma transação existente
-    /// </summary>
-    [HttpPut("{id}")]
-    [ProducesResponseType(typeof(ApiResponse<TransactionDto>), 200)]
-    [ProducesResponseType(404)]
-    public async Task<IActionResult> Update(Guid id, [FromBody] UpdateTransactionDto dto)
-    {
-        try
-        {
-            var transaction = await _transactionService.UpdateAsync(id, dto);
-
-            return Ok(new ApiResponse<TransactionDto>
-            {
-                Success = true,
-                Message = "Transação atualizada com sucesso",
-                Data = transaction
-            });
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(new ApiResponse<object>
-            {
-                Success = false,
-                Error = new ErrorDetails
-                {
-                    Code = "UPDATE_ERROR",
-                    Message = ex.Message
-                }
-            });
-        }
-    }
-
-    /// <summary>
-    /// Deleta uma transação
-    /// </summary>
-    [HttpDelete("{id}")]
-    [ProducesResponseType(typeof(ApiResponse<object>), 200)]
-    [ProducesResponseType(404)]
-    public async Task<IActionResult> Delete(Guid id)
-    {
-        try
-        {
-            var deleted = await _transactionService.DeleteAsync(id);
-            if (!deleted)
-                return NotFound(new ApiResponse<object>
-                {
-                    Success = false,
-                    Error = new ErrorDetails
-                    {
-                        Code = "RESOURCE_NOT_FOUND",
-                        Message = "Transação não encontrada"
-                    }
-                });
-
-            return Ok(new ApiResponse<object>
-            {
-                Success = true,
-                Message = "Transação deletada com sucesso"
-            });
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(new ApiResponse<object>
-            {
-                Success = false,
-                Error = new ErrorDetails
-                {
-                    Code = "DELETE_ERROR",
-                    Message = ex.Message
-                }
-            });
-        }
-    }
-
-    /// <summary>
-    /// Obtém resumo financeiro
-    /// </summary>
-    [HttpGet("summary")]
-    [ProducesResponseType(typeof(ApiResponse<DetailedSummaryDto>), 200)]
-    public async Task<IActionResult> GetSummary(
-        [FromQuery] DateTime? startDate,
-        [FromQuery] DateTime? endDate,
-        [FromQuery] string? month)
-    {
-        try
-        {
-            var userId = GetUserId();
-
-            // Se month foi fornecido, calcular startDate e endDate
-            if (!string.IsNullOrEmpty(month))
-            {
-                if (DateTime.TryParse($"{month}-01", out var monthDate))
-                {
-                    startDate = new DateTime(monthDate.Year, monthDate.Month, 1);
-                    endDate = startDate.Value.AddMonths(1).AddDays(-1);
-                }
+                TotalIncome = totalIncome,
+                TotalExpense = totalExpense,
+                Balance = totalIncome - totalExpense,
+                SavingsRate = totalIncome > 0 ? (double)((totalIncome - totalExpense) / totalIncome) : 0
             }
-
-            var summary = await _transactionService.GetSummaryAsync(userId, startDate, endDate);
-
-            return Ok(new ApiResponse<DetailedSummaryDto>
-            {
-                Success = true,
-                Data = summary
-            });
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(new ApiResponse<object>
-            {
-                Success = false,
-                Error = new ErrorDetails
-                {
-                    Code = "SUMMARY_ERROR",
-                    Message = ex.Message
-                }
-            });
-        }
+        };
     }
-}
 
-// Classes auxiliares para respostas padronizadas
-public class ApiResponse<T>
-{
-    public bool Success { get; set; }
-    public string? Message { get; set; }
-    public T? Data { get; set; }
-    public ErrorDetails? Error { get; set; }
-}
+    public async Task<TransactionDto> UpdateAsync(Guid id, UpdateTransactionDto dto)
+    {
+        var transaction = await _transactionRepository.GetByIdAsync(id);
+        if (transaction == null)
+            throw new Exception("Transação não encontrada");
 
-public class ErrorDetails
-{
-    public string Code { get; set; } = string.Empty;
-    public string Message { get; set; } = string.Empty;
-    public object? Details { get; set; }
+        // Converter data para UTC
+        var dateUtc = ConvertToUtc(dto.Date) ?? DateTime.UtcNow;
+
+        transaction.Update(dto.Value, dto.Description, dto.Category, dateUtc);
+        await _transactionRepository.UpdateAsync(transaction);
+
+        return MapToDto(transaction);
+    }
+
+    public async Task<bool> DeleteAsync(Guid id)
+    {
+        var transaction = await _transactionRepository.GetByIdAsync(id);
+        if (transaction == null)
+            return false;
+
+        await _transactionRepository.DeleteAsync(transaction);
+        return true;
+    }
+
+    public async Task<DetailedSummaryDto> GetSummaryAsync(
+        Guid userId,
+        DateTime? startDate = null,
+        DateTime? endDate = null)
+    {
+        // CORREÇÃO: Converter datas para UTC
+        DateTime? startDateUtc = ConvertToUtc(startDate);
+        DateTime? endDateUtc = ConvertToUtc(endDate);
+
+        var totalIncome = await _transactionRepository.GetTotalIncomeAsync(userId, startDateUtc, endDateUtc);
+        var totalExpense = await _transactionRepository.GetTotalExpenseAsync(userId, startDateUtc, endDateUtc);
+        var incomeByCategory = await _transactionRepository.GetIncomeByCategoryAsync(userId, startDateUtc, endDateUtc);
+        var expenseByCategory = await _transactionRepository.GetExpenseByCategoryAsync(userId, startDateUtc, endDateUtc);
+        var expenseByType = await _transactionRepository.GetExpenseByTypeAsync(userId, startDateUtc, endDateUtc);
+
+        // Contar transações
+        var incomeCount = await _transactionRepository.CountFilteredAsync(
+            userId, TransactionType.Income, startDateUtc, endDateUtc);
+        var expenseCount = await _transactionRepository.CountFilteredAsync(
+            userId, TransactionType.Expense, startDateUtc, endDateUtc);
+
+        var balance = totalIncome - totalExpense;
+        var savingsRate = totalIncome > 0 ? (double)(balance / totalIncome) : 0;
+
+        return new DetailedSummaryDto
+        {
+            Period = new PeriodDto
+            {
+                StartDate = startDateUtc ?? DateTime.MinValue,
+                EndDate = endDateUtc ?? DateTime.MaxValue
+            },
+            Income = new IncomeSummaryDto
+            {
+                Total = totalIncome,
+                Count = incomeCount,
+                ByCategory = incomeByCategory
+            },
+            Expense = new ExpenseSummaryDto
+            {
+                Total = totalExpense,
+                Count = expenseCount,
+                ByCategory = expenseByCategory,
+                ByType = expenseByType
+            },
+            Balance = balance,
+            SavingsRate = savingsRate
+        };
+    }
+
+    // ====================================================
+    // MÉTODO AUXILIAR PARA CONVERTER PARA UTC
+    // ====================================================
+    private DateTime? ConvertToUtc(DateTime? date)
+    {
+        if (!date.HasValue)
+            return null;
+
+        // Se já está em UTC, retorna direto
+        if (date.Value.Kind == DateTimeKind.Utc)
+            return date.Value;
+
+        // Se está em Local, converte para UTC
+        if (date.Value.Kind == DateTimeKind.Local)
+            return date.Value.ToUniversalTime();
+
+        // Se é Unspecified, assume como UTC
+        return DateTime.SpecifyKind(date.Value, DateTimeKind.Utc);
+    }
+
+    private TransactionDto MapToDto(Transaction transaction)
+    {
+        return new TransactionDto
+        {
+            Id = transaction.Id,
+            UserId = transaction.UserId,
+            Type = transaction.Type.ToString().ToLower(),
+            Value = transaction.Value,
+            Description = transaction.Description,
+            Category = transaction.Category,
+            ExpenseType = transaction.ExpenseType?.ToString().ToLower(),
+            Date = transaction.Date,
+            HasReceipt = transaction.HasReceipt,
+            ReceiptUrl = transaction.ReceiptUrl,
+            ReceiptOcrData = transaction.ReceiptOcrData != null
+                ? JsonSerializer.Deserialize<object>(transaction.ReceiptOcrData)
+                : null,
+            CreatedAt = transaction.CreatedAt,
+            UpdatedAt = transaction.UpdatedAt
+        };
+    }
 }

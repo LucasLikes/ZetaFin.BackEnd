@@ -13,9 +13,9 @@ namespace ZetaFin.Application.Services;
 public class DepositService : IDepositService
 {
     private readonly IGoalRepository _goalRepository;
-    private readonly IDepositRepository _depositRepository;
+    private readonly ExpenseCategories _depositRepository;
 
-    public DepositService(IGoalRepository goalRepository, IDepositRepository depositRepository)
+    public DepositService(IGoalRepository goalRepository, ExpenseCategories depositRepository)
     {
         _goalRepository = goalRepository;
         _depositRepository = depositRepository;

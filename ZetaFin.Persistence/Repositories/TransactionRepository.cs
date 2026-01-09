@@ -17,6 +17,132 @@ public class TransactionRepository : ITransactionRepository
         _context = context;
     }
 
+    // ... (métodos existentes permanecem os mesmos) ...
+
+    // ===== MÉTODOS AJUSTADOS PARA SEMPRE RETORNAR ESTRUTURAS VÁLIDAS =====
+
+    public async Task<decimal> GetTotalIncomeAsync(
+        Guid userId,
+        DateTime? startDate = null,
+        DateTime? endDate = null)
+    {
+        var query = _context.Transactions
+            .Where(t => t.UserId == userId && t.Type == TransactionType.Income);
+
+        if (startDate.HasValue)
+            query = query.Where(t => t.Date >= startDate.Value);
+
+        if (endDate.HasValue)
+            query = query.Where(t => t.Date <= endDate.Value);
+
+        // Se não houver transações, retorna 0 ao invés de null
+        var total = await query.SumAsync(t => (decimal?)t.Value);
+        return total ?? 0m;
+    }
+
+    public async Task<decimal> GetTotalExpenseAsync(
+        Guid userId,
+        DateTime? startDate = null,
+        DateTime? endDate = null)
+    {
+        var query = _context.Transactions
+            .Where(t => t.UserId == userId && t.Type == TransactionType.Expense);
+
+        if (startDate.HasValue)
+            query = query.Where(t => t.Date >= startDate.Value);
+
+        if (endDate.HasValue)
+            query = query.Where(t => t.Date <= endDate.Value);
+
+        // Se não houver transações, retorna 0 ao invés de null
+        var total = await query.SumAsync(t => (decimal?)t.Value);
+        return total ?? 0m;
+    }
+
+    public async Task<Dictionary<string, decimal>> GetIncomeByCategoryAsync(
+        Guid userId,
+        DateTime? startDate = null,
+        DateTime? endDate = null)
+    {
+        var query = _context.Transactions
+            .Where(t => t.UserId == userId && t.Type == TransactionType.Income);
+
+        if (startDate.HasValue)
+            query = query.Where(t => t.Date >= startDate.Value);
+
+        if (endDate.HasValue)
+            query = query.Where(t => t.Date <= endDate.Value);
+
+        var results = await query
+            .GroupBy(t => t.Category)
+            .Select(g => new { Category = g.Key, Total = g.Sum(t => t.Value) })
+            .ToListAsync();
+
+        // Sempre retorna um dicionário, mesmo vazio
+        return results.Any()
+            ? results.ToDictionary(x => x.Category, x => x.Total)
+            : new Dictionary<string, decimal>();
+    }
+
+    public async Task<Dictionary<string, decimal>> GetExpenseByCategoryAsync(
+        Guid userId,
+        DateTime? startDate = null,
+        DateTime? endDate = null)
+    {
+        var query = _context.Transactions
+            .Where(t => t.UserId == userId && t.Type == TransactionType.Expense);
+
+        if (startDate.HasValue)
+            query = query.Where(t => t.Date >= startDate.Value);
+
+        if (endDate.HasValue)
+            query = query.Where(t => t.Date <= endDate.Value);
+
+        var results = await query
+            .GroupBy(t => t.Category)
+            .Select(g => new { Category = g.Key, Total = g.Sum(t => t.Value) })
+            .ToListAsync();
+
+        // Sempre retorna um dicionário, mesmo vazio
+        return results.Any()
+            ? results.ToDictionary(x => x.Category, x => x.Total)
+            : new Dictionary<string, decimal>();
+    }
+
+    public async Task<Dictionary<string, decimal>> GetExpenseByTypeAsync(
+        Guid userId,
+        DateTime? startDate = null,
+        DateTime? endDate = null)
+    {
+        var query = _context.Transactions
+            .Where(t => t.UserId == userId && t.Type == TransactionType.Expense && t.ExpenseType != null);
+
+        if (startDate.HasValue)
+            query = query.Where(t => t.Date >= startDate.Value);
+
+        if (endDate.HasValue)
+            query = query.Where(t => t.Date <= endDate.Value);
+
+        var results = await query
+            .GroupBy(t => t.ExpenseType!.Value)
+            .Select(g => new { Type = g.Key.ToString().ToLower(), Total = g.Sum(t => t.Value) })
+            .ToListAsync();
+
+        // Sempre retorna um dicionário, mesmo vazio
+        // Se vazio, inicializa com as chaves esperadas pelo frontend
+        if (!results.Any())
+        {
+            return new Dictionary<string, decimal>
+            {
+                { "fixas", 0m },
+                { "variaveis", 0m },
+                { "desnecessarios", 0m }
+            };
+        }
+
+        return results.ToDictionary(x => x.Type, x => x.Total);
+    }
+
     public async Task<Transaction?> GetByIdAsync(Guid id)
     {
         return await _context.Transactions
@@ -112,100 +238,6 @@ public class TransactionRepository : ITransactionRepository
     {
         _context.Transactions.Remove(transaction);
         await _context.SaveChangesAsync();
-    }
-
-    public async Task<decimal> GetTotalIncomeAsync(
-        Guid userId,
-        DateTime? startDate = null,
-        DateTime? endDate = null)
-    {
-        var query = _context.Transactions
-            .Where(t => t.UserId == userId && t.Type == TransactionType.Income);
-
-        if (startDate.HasValue)
-            query = query.Where(t => t.Date >= startDate.Value);
-
-        if (endDate.HasValue)
-            query = query.Where(t => t.Date <= endDate.Value);
-
-        return await query.SumAsync(t => t.Value);
-    }
-
-    public async Task<decimal> GetTotalExpenseAsync(
-        Guid userId,
-        DateTime? startDate = null,
-        DateTime? endDate = null)
-    {
-        var query = _context.Transactions
-            .Where(t => t.UserId == userId && t.Type == TransactionType.Expense);
-
-        if (startDate.HasValue)
-            query = query.Where(t => t.Date >= startDate.Value);
-
-        if (endDate.HasValue)
-            query = query.Where(t => t.Date <= endDate.Value);
-
-        return await query.SumAsync(t => t.Value);
-    }
-
-    public async Task<Dictionary<string, decimal>> GetIncomeByCategoryAsync(
-        Guid userId,
-        DateTime? startDate = null,
-        DateTime? endDate = null)
-    {
-        var query = _context.Transactions
-            .Where(t => t.UserId == userId && t.Type == TransactionType.Income);
-
-        if (startDate.HasValue)
-            query = query.Where(t => t.Date >= startDate.Value);
-
-        if (endDate.HasValue)
-            query = query.Where(t => t.Date <= endDate.Value);
-
-        return await query
-            .GroupBy(t => t.Category)
-            .Select(g => new { Category = g.Key, Total = g.Sum(t => t.Value) })
-            .ToDictionaryAsync(x => x.Category, x => x.Total);
-    }
-
-    public async Task<Dictionary<string, decimal>> GetExpenseByCategoryAsync(
-        Guid userId,
-        DateTime? startDate = null,
-        DateTime? endDate = null)
-    {
-        var query = _context.Transactions
-            .Where(t => t.UserId == userId && t.Type == TransactionType.Expense);
-
-        if (startDate.HasValue)
-            query = query.Where(t => t.Date >= startDate.Value);
-
-        if (endDate.HasValue)
-            query = query.Where(t => t.Date <= endDate.Value);
-
-        return await query
-            .GroupBy(t => t.Category)
-            .Select(g => new { Category = g.Key, Total = g.Sum(t => t.Value) })
-            .ToDictionaryAsync(x => x.Category, x => x.Total);
-    }
-
-    public async Task<Dictionary<string, decimal>> GetExpenseByTypeAsync(
-        Guid userId,
-        DateTime? startDate = null,
-        DateTime? endDate = null)
-    {
-        var query = _context.Transactions
-            .Where(t => t.UserId == userId && t.Type == TransactionType.Expense && t.ExpenseType != null);
-
-        if (startDate.HasValue)
-            query = query.Where(t => t.Date >= startDate.Value);
-
-        if (endDate.HasValue)
-            query = query.Where(t => t.Date <= endDate.Value);
-
-        return await query
-            .GroupBy(t => t.ExpenseType!.Value)
-            .Select(g => new { Type = g.Key.ToString().ToLower(), Total = g.Sum(t => t.Value) })
-            .ToDictionaryAsync(x => x.Type, x => x.Total);
     }
 
     public async Task<bool> ExistsAsync(Guid id)
