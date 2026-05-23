@@ -19,6 +19,9 @@ public class ApplicationDbContext : DbContext
     public DbSet<Transaction> Transactions { get; set; }
     public DbSet<Receipt> Receipts { get; set; }
     public DbSet<UserWhatsApp> UserWhatsApps { get; set; }
+    public DbSet<RefreshToken> RefreshTokens { get; set; }
+    public DbSet<UserSession> UserSessions { get; set; }
+    public DbSet<AuditLog> AuditLogs { get; set; }
 
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -47,6 +50,20 @@ public class ApplicationDbContext : DbContext
             entity.Property(u => u.Role)
                 .IsRequired()
                 .HasMaxLength(50);
+
+            entity.Property(u => u.IsEmailConfirmed)
+                .IsRequired();
+
+            entity.Property(u => u.IsActive)
+                .IsRequired();
+
+            entity.Property(u => u.CreatedAt)
+                .IsRequired();
+
+            entity.Property(u => u.FailedLoginAttempts)
+                .IsRequired();
+
+            entity.HasIndex(u => u.CreatedAt);
         });
 
         // =================== GOAL ===================
@@ -229,19 +246,120 @@ public class ApplicationDbContext : DbContext
                 .HasForeignKey(w => w.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
-    }
 
-    // Método opcional para seed data inicial
-    private void SeedData(ModelBuilder modelBuilder)
-    {
-        // Exemplo: criar usuário admin padrão
-        var adminId = Guid.Parse("00000000-0000-0000-0000-000000000001");
+        // =================== REFRESH TOKEN ===================
+        modelBuilder.Entity<RefreshToken>(entity =>
+        {
+            entity.HasKey(rt => rt.Id);
 
-        modelBuilder.Entity<User>().HasData(
-            new User("Admin", "admin@zetafin.com", "Admin@123", "Admin")
-            {
-                // Note: você precisará criar um construtor que aceite o Id
-            }
-        );
+            entity.Property(rt => rt.Token)
+                .IsRequired()
+                .HasMaxLength(1000);
+
+            entity.Property(rt => rt.DeviceName)
+                .IsRequired()
+                .HasMaxLength(200);
+
+            entity.Property(rt => rt.DeviceType)
+                .IsRequired()
+                .HasMaxLength(50);
+
+            entity.Property(rt => rt.IpAddress)
+                .IsRequired()
+                .HasMaxLength(50);
+
+            entity.Property(rt => rt.CreatedAt)
+                .IsRequired();
+
+            entity.Property(rt => rt.ExpiresAt)
+                .IsRequired();
+
+            entity.Property(rt => rt.RevokeReason)
+                .HasMaxLength(500);
+
+            entity.HasIndex(rt => rt.Token)
+                .IsUnique();
+            entity.HasIndex(rt => rt.UserId);
+            entity.HasIndex(rt => new { rt.UserId, rt.RevokedAt });
+
+            entity.HasOne(rt => rt.User)
+                .WithMany(u => u.RefreshTokens)
+                .HasForeignKey(rt => rt.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // =================== USER SESSION ===================
+        modelBuilder.Entity<UserSession>(entity =>
+        {
+            entity.HasKey(us => us.Id);
+
+            entity.Property(us => us.DeviceName)
+                .IsRequired()
+                .HasMaxLength(200);
+
+            entity.Property(us => us.DeviceType)
+                .IsRequired()
+                .HasMaxLength(50);
+
+            entity.Property(us => us.IpAddress)
+                .IsRequired()
+                .HasMaxLength(50);
+
+            entity.Property(us => us.UserAgent)
+                .HasMaxLength(1000);
+
+            entity.Property(us => us.CreatedAt)
+                .IsRequired();
+
+            entity.Property(us => us.LastAccessAt)
+                .IsRequired();
+
+            entity.Property(us => us.IsActive)
+                .IsRequired();
+
+            entity.HasIndex(us => us.UserId);
+            entity.HasIndex(us => new { us.UserId, us.IsActive });
+
+            entity.HasOne(us => us.User)
+                .WithMany(u => u.Sessions)
+                .HasForeignKey(us => us.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // =================== AUDIT LOG ===================
+        modelBuilder.Entity<AuditLog>(entity =>
+        {
+            entity.HasKey(al => al.Id);
+
+            entity.Property(al => al.Action)
+                .IsRequired()
+                .HasMaxLength(200);
+
+            entity.Property(al => al.Resource)
+                .IsRequired()
+                .HasMaxLength(200);
+
+            entity.Property(al => al.IpAddress)
+                .IsRequired()
+                .HasMaxLength(50);
+
+            entity.Property(al => al.UserAgent)
+                .HasMaxLength(1000);
+
+            entity.Property(al => al.Status)
+                .IsRequired()
+                .HasMaxLength(50);
+
+            entity.Property(al => al.Details)
+                .HasColumnType("jsonb");
+
+            entity.Property(al => al.CreatedAt)
+                .IsRequired();
+
+            entity.HasIndex(al => al.UserId);
+            entity.HasIndex(al => al.Action);
+            entity.HasIndex(al => al.CreatedAt);
+            entity.HasIndex(al => new { al.UserId, al.CreatedAt });
+        });
     }
 }

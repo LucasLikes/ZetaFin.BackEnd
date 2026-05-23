@@ -3,6 +3,7 @@ using ZetaFin.Domain.Entities;
 using ZetaFin.Domain.Interfaces;
 
 namespace ZetaFin.Persistence.Repositories;
+
 public class UserRepository : IUserRepository
 {
     private readonly ApplicationDbContext _context;
@@ -33,13 +34,28 @@ public class UserRepository : IUserRepository
         return await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
     }
 
-    // Método para verificar se a senha está correta
     public async Task<bool> CheckUserPasswordAsync(string email, string password)
     {
         var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
         if (user == null)
             return false;
 
-        return user.VerifyPassword(password);  // Verifica se a senha fornecida corresponde ao hash
+        return user.VerifyPassword(password);
+    }
+
+    public async Task UpdateAsync(User user)
+    {
+        _context.Users.Update(user);
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task DeleteAsync(Guid id)
+    {
+        var user = await GetByIdAsync(id);
+        if (user != null)
+        {
+            _context.Users.Remove(user);
+            await _context.SaveChangesAsync();
+        }
     }
 }

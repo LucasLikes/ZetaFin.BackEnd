@@ -58,6 +58,10 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 
 // Repositories
 builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
+builder.Services.AddScoped<IUserSessionRepository, UserSessionRepository>();
+builder.Services.AddScoped<IAuditLogRepository, AuditLogRepository>();
+builder.Services.AddScoped<IUserWhatsAppRepository, UserWhatsAppRepository>();
 builder.Services.AddScoped<IGoalRepository, GoalRepository>();
 builder.Services.AddScoped<ExpenseCategories, DepositRepository>();
 builder.Services.AddScoped<IUserGoalRepository, UserGoalRepository>();
@@ -65,7 +69,13 @@ builder.Services.AddScoped<IExpenseRepository, ExpenseRepository>();
 builder.Services.AddScoped<ITransactionRepository, TransactionRepository>();
 builder.Services.AddScoped<IReceiptRepository, ReceiptRepository>();
 
-// Services
+// Authentication & Security Services
+builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
+builder.Services.AddScoped<IPasswordService, PasswordService>();
+builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
+builder.Services.AddScoped<IAuditLogService, AuditLogService>();
+
+// Business Services
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IGoalService, GoalService>();
 builder.Services.AddScoped<IDepositService, DepositService>();
@@ -73,6 +83,7 @@ builder.Services.AddScoped<IUserGoalService, UserGoalService>();
 builder.Services.AddScoped<IExpenseService, ExpenseService>();
 builder.Services.AddScoped<ITransactionService, TransactionService>();
 builder.Services.AddScoped<IReceiptService, ReceiptService>();
+builder.Services.AddScoped<IWhatsAppAuthService, WhatsAppAuthService>();
 
 // Infrastructure Services
 var storagePath = builder.Configuration["Storage:BasePath"] ?? "storage";
