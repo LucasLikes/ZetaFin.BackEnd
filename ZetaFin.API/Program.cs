@@ -13,7 +13,7 @@ using ZetaFin.Persistence.Repositories;
 var builder = WebApplication.CreateBuilder(args);
 
 // ===================================
-// CONFIGURA«√O DE LOGGING
+// CONFIGURA√á√ÉO DE LOGGING
 // ===================================
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
@@ -25,13 +25,13 @@ if (builder.Environment.IsProduction())
 }
 
 // ===================================
-// CONFIGURA«√O DO BANCO DE DADOS
+// CONFIGURA√á√ÉO DO BANCO DE DADOS
 // ===================================
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
 if (string.IsNullOrEmpty(connectionString))
 {
-    throw new InvalidOperationException("Connection string 'DefaultConnection' n„o encontrada.");
+    throw new InvalidOperationException("Connection string 'DefaultConnection' n√£o encontrada.");
 }
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
@@ -68,6 +68,7 @@ builder.Services.AddScoped<IUserGoalRepository, UserGoalRepository>();
 builder.Services.AddScoped<IExpenseRepository, ExpenseRepository>();
 builder.Services.AddScoped<ITransactionRepository, TransactionRepository>();
 builder.Services.AddScoped<IReceiptRepository, ReceiptRepository>();
+builder.Services.AddScoped<IPreRegistrationRepository, PreRegistrationRepository>(); // ‚Üê NOVO
 
 // Authentication & Security Services
 builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
@@ -84,6 +85,7 @@ builder.Services.AddScoped<IExpenseService, ExpenseService>();
 builder.Services.AddScoped<ITransactionService, TransactionService>();
 builder.Services.AddScoped<IReceiptService, ReceiptService>();
 builder.Services.AddScoped<IWhatsAppAuthService, WhatsAppAuthService>();
+builder.Services.AddScoped<IPreRegistrationService, PreRegistrationService>(); // ‚Üê NOVO
 
 // Infrastructure Services
 var storagePath = builder.Configuration["Storage:BasePath"] ?? "storage";
@@ -104,7 +106,7 @@ var jwtAudience = builder.Configuration["Jwt:Audience"];
 
 if (string.IsNullOrEmpty(jwtSecret))
 {
-    throw new InvalidOperationException("JWT Secret n„o configurado.");
+    throw new InvalidOperationException("JWT Secret n√£o configurado.");
 }
 
 builder.Services.AddAuthentication(options =>
@@ -146,78 +148,7 @@ builder.Services.AddCors(options =>
     });
 });
 
-// ===================================
-// HEALTH CHECKS
-// ===================================
-//builder.Services.AddHealthChecks().AddNpgSql(connectionString, name: "database", tags: new[] { "db", "sql" });
-
 var app = builder.Build();
-
-// ===================================
-// EXECUTAR MIGRATIONS AUTOMATICAMENTE
-// ===================================
-//if (args.Contains("--migrate"))
-//{
-//    Console.WriteLine("Executando migrations...");
-
-//    using var scope = app.Services.CreateScope();
-//    var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-
-//    try
-//    {
-//        var pendingMigrations = await dbContext.Database.GetPendingMigrationsAsync();
-
-//        if (pendingMigrations.Any())
-//        {
-//            Console.WriteLine($"{pendingMigrations.Count()} migrations pendentes encontradas.");
-//            await dbContext.Database.MigrateAsync();
-//            Console.WriteLine("Migrations executadas com sucesso!");
-//        }
-//        else
-//        {
-//            Console.WriteLine("Banco de dados j· est· atualizado.");
-//        }
-//    }
-//    catch (Exception ex)
-//    {
-//        Console.WriteLine($"Erro ao executar migrations: {ex.Message}");
-//        throw;
-//    }
-
-//    // Sair apÛs migrations se for apenas para execut·-las
-//    if (args.Contains("--migrate-only"))
-//    {
-//        return;
-//    }
-//}
-//else
-//{
-//    // Verificar conex„o e aplicar migrations automaticamente no startup
-//    using var scope = app.Services.CreateScope();
-//    var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-//    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
-
-//    try
-//    {
-//        logger.LogInformation("Verificando conex„o com banco de dados...");
-//        await dbContext.Database.CanConnectAsync();
-//        logger.LogInformation("Conectado ao banco de dados com sucesso!");
-
-//        var pendingMigrations = await dbContext.Database.GetPendingMigrationsAsync();
-
-//        if (pendingMigrations.Any())
-//        {
-//            logger.LogWarning($"{pendingMigrations.Count()} migrations pendentes detectadas. Aplicando...");
-//            await dbContext.Database.MigrateAsync();
-//            logger.LogInformation("Migrations aplicadas com sucesso!");
-//        }
-//    }
-//    catch (Exception ex)
-//    {
-//        logger.LogError(ex, "Erro ao conectar ou migrar banco de dados");
-//        throw;
-//    }
-//}
 
 // ===================================
 // MIDDLEWARE PIPELINE
@@ -234,7 +165,6 @@ else
     app.UseHsts();
 }
 
-// Servir arquivos est·ticos (storage)
 app.UseStaticFiles();
 
 app.UseCors("AllowAll");
@@ -243,10 +173,6 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-// Health check endpoint
-//app.MapHealthChecks("/health");
-
-// Endpoint de informaÁ„o
 app.MapGet("/", () => new
 {
     Application = "ZetaFin API",
