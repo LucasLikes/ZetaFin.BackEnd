@@ -5,25 +5,23 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace ZetaFin.Persistence.Migrations
 {
-    /// <inheritdoc />
     public partial class InitialCreate : Migration
     {
-        /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
                 name: "Expenses",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "TEXT", nullable: false),
-                    UserId = table.Column<string>(type: "TEXT", nullable: false),
-                    Name = table.Column<string>(type: "TEXT", nullable: false),
-                    Value = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    Category = table.Column<string>(type: "TEXT", nullable: false),
-                    Date = table.Column<DateTime>(type: "TEXT", nullable: false),
-                    DueDate = table.Column<DateTime>(type: "TEXT", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "TEXT", nullable: true)
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    UserId = table.Column<string>(type: "text", nullable: false),
+                    Name = table.Column<string>(type: "text", nullable: false),
+                    Value = table.Column<decimal>(type: "numeric(18,2)", nullable: false),
+                    Category = table.Column<string>(type: "text", nullable: false),
+                    Date = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    DueDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -34,12 +32,12 @@ namespace ZetaFin.Persistence.Migrations
                 name: "Goals",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "TEXT", nullable: false),
-                    Description = table.Column<string>(type: "TEXT", nullable: false),
-                    TargetAmount = table.Column<decimal>(type: "TEXT", nullable: false),
-                    CurrentAmount = table.Column<decimal>(type: "TEXT", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
-                    TargetDate = table.Column<DateTime>(type: "TEXT", nullable: true)
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    Description = table.Column<string>(type: "text", nullable: false),
+                    TargetAmount = table.Column<decimal>(type: "numeric(18,2)", nullable: false),
+                    CurrentAmount = table.Column<decimal>(type: "numeric(18,2)", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    TargetDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -50,19 +48,19 @@ namespace ZetaFin.Persistence.Migrations
                 name: "Transactions",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "TEXT", nullable: false),
-                    UserId = table.Column<Guid>(type: "TEXT", nullable: false),
-                    Type = table.Column<string>(type: "TEXT", nullable: false),
-                    Value = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    Description = table.Column<string>(type: "TEXT", maxLength: 500, nullable: false),
-                    Category = table.Column<string>(type: "TEXT", maxLength: 100, nullable: false),
-                    ExpenseType = table.Column<string>(type: "TEXT", nullable: true),
-                    Date = table.Column<DateTime>(type: "TEXT", nullable: false),
-                    HasReceipt = table.Column<bool>(type: "INTEGER", nullable: false),
-                    ReceiptUrl = table.Column<string>(type: "TEXT", nullable: true),
-                    ReceiptOcrData = table.Column<string>(type: "TEXT", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "TEXT", nullable: true)
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    UserId = table.Column<Guid>(type: "uuid", nullable: false),
+                    Type = table.Column<string>(type: "text", nullable: false),
+                    Value = table.Column<decimal>(type: "numeric(18,2)", nullable: false),
+                    Description = table.Column<string>(type: "text", maxLength: 500, nullable: false),
+                    Category = table.Column<string>(type: "text", maxLength: 100, nullable: false),
+                    ExpenseType = table.Column<string>(type: "text", nullable: true),
+                    Date = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    HasReceipt = table.Column<bool>(type: "boolean", nullable: false),
+                    ReceiptUrl = table.Column<string>(type: "text", nullable: true),
+                    ReceiptOcrData = table.Column<string>(type: "text", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -73,12 +71,12 @@ namespace ZetaFin.Persistence.Migrations
                 name: "Users",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "TEXT", nullable: false),
-                    Name = table.Column<string>(type: "TEXT", nullable: false),
-                    Email = table.Column<string>(type: "TEXT", nullable: false),
-                    PasswordHash = table.Column<string>(type: "TEXT", nullable: false),
-                    Role = table.Column<string>(type: "TEXT", nullable: false),
-                    IsEmailConfirmed = table.Column<bool>(type: "INTEGER", nullable: false)
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    Name = table.Column<string>(type: "text", nullable: false),
+                    Email = table.Column<string>(type: "text", nullable: false),
+                    PasswordHash = table.Column<string>(type: "text", nullable: false),
+                    Role = table.Column<string>(type: "text", nullable: false),
+                    IsEmailConfirmed = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -89,12 +87,12 @@ namespace ZetaFin.Persistence.Migrations
                 name: "Deposits",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "TEXT", nullable: false),
-                    Amount = table.Column<decimal>(type: "TEXT", nullable: false),
-                    Date = table.Column<DateTime>(type: "TEXT", nullable: false),
-                    Source = table.Column<string>(type: "TEXT", nullable: false),
-                    GoalId = table.Column<Guid>(type: "TEXT", nullable: false),
-                    UserId = table.Column<Guid>(type: "TEXT", nullable: false)
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    Amount = table.Column<decimal>(type: "numeric(18,2)", nullable: false),
+                    Date = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    Source = table.Column<string>(type: "text", nullable: false),
+                    GoalId = table.Column<Guid>(type: "uuid", nullable: false),
+                    UserId = table.Column<Guid>(type: "uuid", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -117,17 +115,17 @@ namespace ZetaFin.Persistence.Migrations
                 name: "Receipts",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "TEXT", nullable: false),
-                    TransactionId = table.Column<Guid>(type: "TEXT", nullable: true),
-                    UserId = table.Column<Guid>(type: "TEXT", nullable: false),
-                    FileName = table.Column<string>(type: "TEXT", maxLength: 255, nullable: false),
-                    FileUrl = table.Column<string>(type: "TEXT", maxLength: 500, nullable: false),
-                    FileSize = table.Column<long>(type: "INTEGER", nullable: false),
-                    MimeType = table.Column<string>(type: "TEXT", maxLength: 100, nullable: false),
-                    OcrProcessed = table.Column<bool>(type: "INTEGER", nullable: false),
-                    OcrDataJson = table.Column<string>(type: "TEXT", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "TEXT", nullable: true)
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    TransactionId = table.Column<Guid>(type: "uuid", nullable: true),
+                    UserId = table.Column<Guid>(type: "uuid", nullable: false),
+                    FileName = table.Column<string>(type: "text", maxLength: 255, nullable: false),
+                    FileUrl = table.Column<string>(type: "text", maxLength: 500, nullable: false),
+                    FileSize = table.Column<long>(type: "bigint", nullable: false),
+                    MimeType = table.Column<string>(type: "text", maxLength: 100, nullable: false),
+                    OcrProcessed = table.Column<bool>(type: "boolean", nullable: false),
+                    OcrDataJson = table.Column<string>(type: "text", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -150,10 +148,10 @@ namespace ZetaFin.Persistence.Migrations
                 name: "UserGoals",
                 columns: table => new
                 {
-                    UserId = table.Column<Guid>(type: "TEXT", nullable: false),
-                    GoalId = table.Column<Guid>(type: "TEXT", nullable: false),
-                    CustomMonthlyTarget = table.Column<decimal>(type: "TEXT", nullable: true),
-                    GoalId1 = table.Column<Guid>(type: "TEXT", nullable: true)
+                    UserId = table.Column<Guid>(type: "uuid", nullable: false),
+                    GoalId = table.Column<Guid>(type: "uuid", nullable: false),
+                    CustomMonthlyTarget = table.Column<decimal>(type: "numeric(18,2)", nullable: true),
+                    GoalId1 = table.Column<Guid>(type: "uuid", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -181,12 +179,12 @@ namespace ZetaFin.Persistence.Migrations
                 name: "UserWhatsApps",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "TEXT", nullable: false),
-                    UserId = table.Column<Guid>(type: "TEXT", nullable: false),
-                    WhatsAppNumber = table.Column<string>(type: "TEXT", maxLength: 20, nullable: false),
-                    IsActive = table.Column<bool>(type: "INTEGER", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
-                    LastMessageAt = table.Column<DateTime>(type: "TEXT", nullable: true)
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    UserId = table.Column<Guid>(type: "uuid", nullable: false),
+                    WhatsAppNumber = table.Column<string>(type: "text", maxLength: 20, nullable: false),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    LastMessageAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -214,7 +212,7 @@ namespace ZetaFin.Persistence.Migrations
                 table: "Receipts",
                 column: "TransactionId",
                 unique: true,
-                filter: "[TransactionId] IS NOT NULL");
+                filter: "\"TransactionId\" IS NOT NULL");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Receipts_UserId",
@@ -258,32 +256,16 @@ namespace ZetaFin.Persistence.Migrations
                 unique: true);
         }
 
-        /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropTable(
-                name: "Deposits");
-
-            migrationBuilder.DropTable(
-                name: "Expenses");
-
-            migrationBuilder.DropTable(
-                name: "Receipts");
-
-            migrationBuilder.DropTable(
-                name: "UserGoals");
-
-            migrationBuilder.DropTable(
-                name: "UserWhatsApps");
-
-            migrationBuilder.DropTable(
-                name: "Transactions");
-
-            migrationBuilder.DropTable(
-                name: "Goals");
-
-            migrationBuilder.DropTable(
-                name: "Users");
+            migrationBuilder.DropTable(name: "Deposits");
+            migrationBuilder.DropTable(name: "Expenses");
+            migrationBuilder.DropTable(name: "Receipts");
+            migrationBuilder.DropTable(name: "UserGoals");
+            migrationBuilder.DropTable(name: "UserWhatsApps");
+            migrationBuilder.DropTable(name: "Transactions");
+            migrationBuilder.DropTable(name: "Goals");
+            migrationBuilder.DropTable(name: "Users");
         }
     }
 }

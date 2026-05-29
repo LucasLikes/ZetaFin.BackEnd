@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using ZetaFin.Domain.Entities;
+using ZetaFin.Persistence.Configurations;
 
 namespace ZetaFin.Persistence;
 
@@ -22,7 +23,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<RefreshToken> RefreshTokens { get; set; }
     public DbSet<UserSession> UserSessions { get; set; }
     public DbSet<AuditLog> AuditLogs { get; set; }
-
+    public DbSet<PreRegistration> PreRegistrations { get; set; }  // ← NOVO
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -184,7 +185,6 @@ public class ApplicationDbContext : DbContext
             entity.HasIndex(t => new { t.UserId, t.Date });
             entity.HasIndex(t => t.Type);
 
-            // Relacionamento 1:1 com Receipt
             entity.HasOne(t => t.Receipt)
                 .WithOne(r => r.Transaction)
                 .HasForeignKey<Receipt>(r => r.TransactionId)
@@ -210,7 +210,7 @@ public class ApplicationDbContext : DbContext
                 .IsRequired();
 
             entity.Property(r => r.OcrDataJson)
-                .HasColumnType("jsonb"); // PostgreSQL JSONB para melhor performance
+                .HasColumnType("jsonb");
 
             entity.HasIndex(r => r.UserId);
             entity.HasIndex(r => r.TransactionId)
@@ -361,5 +361,8 @@ public class ApplicationDbContext : DbContext
             entity.HasIndex(al => al.CreatedAt);
             entity.HasIndex(al => new { al.UserId, al.CreatedAt });
         });
+
+        // =================== PRE REGISTRATION =================== // ← NOVO
+        modelBuilder.ApplyConfiguration(new PreRegistrationConfiguration());
     }
 }
